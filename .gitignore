@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+build/
+
+# Env and secrets
+.env
+.env.local
+.env.*.local
+
+# Local DB and backups
+data/
+backups/*.sql
+
+# Logs and debug
+logs/
+*.log
+npm-debug.log*
+
+# IDE and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Test
+coverage/
+.nyc_output/
+
+# Optional
+*.tgz
+
+#file
+files/books/
+backups/files/books/*.pdf

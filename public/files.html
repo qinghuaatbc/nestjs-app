@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>File Server</title>
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --surface: #18181c;
+      --border: #2a2a30;
+      --text: #e4e4e7;
+      --muted: #71717a;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+    .breadcrumb {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+    .breadcrumb a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .breadcrumb span { color: var(--muted); margin: 0 6px; }
+    .list-wrap {
+      max-width: 720px;
+      background: var(--surface);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .list-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      text-decoration: none;
+      color: inherit;
+      transition: background 0.15s;
+    }
+    .list-item:last-child { border-bottom: none; }
+    .list-item:hover { background: rgba(255,255,255,0.04); }
+    .list-item.dir .name::before {
+      content: '📁 ';
+    }
+    .list-item.file .name::before {
+      content: '📄 ';
+    }
+    .name { flex: 1; font-size: 14px; }
+    .size {
+      font-size: 12px;
+      color: var(--muted);
+      min-width: 72px;
+      text-align: right;
+    }
+    .download {
+      padding: 6px 12px;
+      font-size: 12px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .download:hover { background: var(--accent-hover); }
+    .view-pdf {
+      padding: 6px 12px;
+      font-size: 12px;
+      background: var(--border);
+      color: var(--text);
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      margin-right: 6px;
+    }
+    .view-pdf:hover { background: #3f3f46; }
+    .loading, .error {
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+    }
+    .error { color: #f87171; }
+    .hint {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+    .hint code {
+      background: var(--surface);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <p style="margin-bottom:12px;"><a href="/s/index.html" style="color:var(--muted);font-size:13px;text-decoration:none;">← Home</a></p>
+  <h1>File Server</h1>
+  <p class="hint">Files are served from the <code>files</code> folder in the project root. Browse and download here.</p>
+  <div class="breadcrumb" id="breadcrumb">
+    <a href="javascript:;" data-path="">files</a>
+  </div>
+  <div class="list-wrap" id="listWrap">
+    <div class="loading" id="loading">Loading…</div>
+    <div id="list"></div>
+  </div>
+
+  <script>
+    const listWrap = document.getElementById('listWrap');
+    const listEl = document.getElementById('list');
+    const loadingEl = document.getElementById('loading');
+    const breadcrumbEl = document.getElementById('breadcrumb');
+
+    let currentPath = '';
+
+    function formatSize(bytes) {
+      if (bytes == null) return '–';
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    function renderBreadcrumb() {
+      const parts = currentPath ? currentPath.split('/').filter(Boolean) : [];
+      let html = '<a href="javascript:;" data-path="">files</a>';
+      let acc = '';
+      parts.forEach((p, i) => {
+        acc += (acc ? '/' : '') + p;
+        const path = acc;
+        html += '<span>/</span><a href="javascript:;" data-path="' + encodeURIComponent(path) + '">' + escapeHtml(p) + '</a>';
+      });
+      breadcrumbEl.innerHTML = html;
+      breadcrumbEl.querySelectorAll('a').forEach(a => {
+        a.addEventListener('click', () => openDir(a.getAttribute('data-path') || ''));
+      });
+    }
+
+    function escapeHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    function openDir(path) {
+      currentPath = path;
+      renderBreadcrumb();
+      loadList();
+    }
+
+    async function loadList() {
+      loadingEl.style.display = 'block';
+      listEl.innerHTML = '';
+      try {
+        const q = currentPath ? '?path=' + encodeURIComponent(currentPath) : '';
+        const res = await fetch('/api/files/list' + q);
+        if (!res.ok) throw new Error(res.statusText);
+        const entries = await res.json();
+        loadingEl.style.display = 'none';
+        if (entries.length === 0) {
+          listEl.innerHTML = '<div class="loading">This folder is empty</div>';
+          return;
+        }
+        entries.forEach(entry => {
+          const item = document.createElement(entry.isDir ? 'a' : 'div');
+          item.className = 'list-item ' + (entry.isDir ? 'dir' : 'file');
+          item.href = entry.isDir ? 'javascript:;' : undefined;
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'name';
+          nameSpan.textContent = entry.name;
+          const sizeSpan = document.createElement('span');
+          sizeSpan.className = 'size';
+          sizeSpan.textContent = entry.isDir ? '–' : formatSize(entry.size);
+          item.appendChild(nameSpan);
+          item.appendChild(sizeSpan);
+          if (entry.isDir) {
+            item.addEventListener('click', (e) => {
+              e.preventDefault();
+              openDir(entry.path);
+            });
+          } else {
+            const isPdf = entry.name.toLowerCase().endsWith('.pdf');
+            if (isPdf) {
+              const viewBtn = document.createElement('button');
+              viewBtn.type = 'button';
+              viewBtn.className = 'view-pdf';
+              viewBtn.textContent = 'View';
+              viewBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                window.open('/api/files/stream?path=' + encodeURIComponent(entry.path), '_blank');
+              });
+              item.appendChild(viewBtn);
+            }
+            const a = document.createElement('a');
+            a.className = 'download';
+            a.href = '/api/files/download?path=' + encodeURIComponent(entry.path);
+            a.download = entry.name;
+            a.textContent = 'Download';
+            item.appendChild(a);
+          }
+          listEl.appendChild(item);
+        });
+      } catch (e) {
+        loadingEl.style.display = 'none';
+        listEl.innerHTML = '<div class="error">Load failed: ' + escapeHtml(e.message) + '</div>';
+      }
+    }
+
+    renderBreadcrumb();
+    loadList();
+  </script>
+</body>
+</html>

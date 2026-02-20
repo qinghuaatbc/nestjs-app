@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>REST Test</title>
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --surface: #18181c;
+      --border: #2a2a30;
+      --text: #e4e4e7;
+      --muted: #71717a;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --danger: #f87171;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .wrap { max-width: 900px; margin: 0 auto; }
+    h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 20px; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .home-link { margin-bottom: 16px; }
+    .home-link a { color: var(--muted); font-size: 13px; text-decoration: none; }
+    .home-link a:hover { color: var(--accent); }
+
+    /* Form */
+    .form-row { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+    .form-row label { min-width: 60px; font-size: 13px; color: var(--muted); }
+    input[type="text"], input[type="number"] {
+      padding: 8px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+    }
+    input[type="number"] { width: 80px; }
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn:hover { background: var(--accent-hover); }
+    .btn-ghost { background: var(--border); color: var(--text); }
+    .btn-ghost:hover { background: #3f3f46; }
+    .btn-danger { background: var(--danger); }
+    .btn-danger:hover { opacity: 0.9; }
+    .btn-sm { padding: 6px 10px; font-size: 12px; margin-right: 4px; }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 500; }
+    tr:hover { background: rgba(255,255,255,0.02); }
+    .actions { white-space: nowrap; }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .pagination-info { font-size: 13px; color: var(--muted); }
+    .pagination-btns { display: flex; gap: 8px; }
+    .pagination-btns .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Raw REST section */
+    .section-title { font-size: 14px; color: var(--muted); margin-bottom: 12px; cursor: pointer; }
+    .section-title:hover { color: var(--text); }
+    .raw-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+    .raw-row select { min-width: 80px; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); }
+    .raw-row input { flex: 1; min-width: 150px; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); }
+    textarea { width: 100%; min-height: 60px; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px; font-family: monospace; }
+    .response pre { background: var(--bg); padding: 12px; border-radius: 8px; font-size: 12px; overflow: auto; white-space: pre-wrap; margin-top: 8px; }
+    .status.ok { color: #4ade80; }
+    .status.err { color: #f87171; }
+    .empty-msg { color: var(--muted); text-align: center; padding: 24px; }
+    input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent); }
+    .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 12px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="home-link"><a href="/s/index.html">← Home</a></p>
+    <h1>REST Test</h1>
+
+    <!-- Persons -->
+    <div class="card">
+      <h2>Persons</h2>
+      <div class="section-title" id="formTitle">Add Person</div>
+      <div class="form-row">
+        <label>Name</label>
+        <input type="text" id="inputName" placeholder="Name" />
+        <label>Age</label>
+        <input type="number" id="inputAge" placeholder="0" min="0" value="0" />
+        <label>Hobby</label>
+        <input type="text" id="inputHobby" placeholder="Hobby" />
+        <button type="button" class="btn" id="btnSubmit">Add</button>
+        <button type="button" class="btn btn-ghost" id="btnCancel" style="display:none;">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Table + Pagination -->
+    <div class="card">
+      <div class="form-row" style="margin-bottom:16px;">
+        <button type="button" class="btn btn-ghost btn-sm" id="btnRefresh">Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Age</th>
+              <th>Hobby</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+      <div id="emptyMsg" class="empty-msg" style="display:none;">No persons. Add one above.</div>
+      <div class="pagination" id="pagination" style="display:none;">
+        <span class="pagination-info" id="pageInfo"></span>
+        <div class="pagination-btns">
+          <button type="button" class="btn btn-ghost btn-sm" id="btnPrev">Previous</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="btnNext">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Devices -->
+    <div class="card">
+      <h2>Devices</h2>
+      <div class="section-title" id="deviceFormTitle">Add Device</div>
+      <div class="form-row">
+        <label>Name</label>
+        <input type="text" id="devInputName" placeholder="Name" />
+        <label>Location</label>
+        <input type="text" id="devInputLocation" placeholder="Location" />
+        <label>On/Off</label>
+        <input type="checkbox" id="devInputOnOff" />
+        <label>Level</label>
+        <input type="number" id="devInputLevel" min="0" value="0" />
+        <button type="button" class="btn" id="devBtnSubmit">Add</button>
+        <button type="button" class="btn btn-ghost" id="devBtnCancel" style="display:none;">Cancel</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="form-row" style="margin-bottom:16px;">
+        <button type="button" class="btn btn-ghost btn-sm" id="devBtnRefresh">Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Location</th>
+              <th>On/Off</th>
+              <th>Level</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="devTableBody"></tbody>
+        </table>
+      </div>
+      <div id="devEmptyMsg" class="empty-msg" style="display:none;">No devices. Add one above.</div>
+      <div class="pagination" id="devPagination" style="display:none;">
+        <span class="pagination-info" id="devPageInfo"></span>
+        <div class="pagination-btns">
+          <button type="button" class="btn btn-ghost btn-sm" id="devBtnPrev">Previous</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="devBtnNext">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HTTP REST -->
+    <div class="card">
+      <h2>HTTP REST</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Send any request to API endpoints. Use path (e.g. /api/persons) or full URL.</p>
+      <div class="raw-presets" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+        <button type="button" class="btn btn-ghost btn-sm raw-preset" data-method="GET" data-url="/api/persons">GET /api/persons</button>
+        <button type="button" class="btn btn-ghost btn-sm raw-preset" data-method="GET" data-url="/api/devices">GET /api/devices</button>
+        <button type="button" class="btn btn-ghost btn-sm raw-preset" data-method="GET" data-url="/api/info">GET /api/info</button>
+        <button type="button" class="btn btn-ghost btn-sm raw-preset" data-method="POST" data-url="/api/persons" data-body='{"name":"New","age":20,"hobby":"test"}'>POST /api/persons</button>
+        <button type="button" class="btn btn-ghost btn-sm raw-preset" data-method="POST" data-url="/api/devices" data-body='{"name":"Device1","location":"Room A","onOff":true,"level":50}'>POST /api/devices</button>
+      </div>
+      <div class="raw-row">
+        <select id="method">
+          <option value="GET">GET</option>
+          <option value="POST">POST</option>
+          <option value="PATCH">PATCH</option>
+          <option value="DELETE">DELETE</option>
+        </select>
+        <input type="text" id="url" placeholder="Path or URL e.g. /api/persons" value="/api/persons" />
+        <button type="button" class="btn btn-sm" id="sendBtn">Send</button>
+      </div>
+      <div id="bodyWrap" style="margin-top:8px;">
+        <label class="label">Body (JSON)</label>
+        <textarea id="body" placeholder='{"name":"","age":0,"hobby":""}' style="margin-top:4px;"></textarea>
+      </div>
+      <div id="responseCard" style="margin-top:12px; display:none;">
+        <span class="status" id="status"></span>
+        <pre id="responseBody"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var API = '/api/persons';
+    var PAGE_SIZE = 5;
+    var allPersons = [];
+    var currentPage = 1;
+    var editingId = null;
+
+    var inputName = document.getElementById('inputName');
+    var inputAge = document.getElementById('inputAge');
+    var inputHobby = document.getElementById('inputHobby');
+    var btnSubmit = document.getElementById('btnSubmit');
+    var btnCancel = document.getElementById('btnCancel');
+    var formTitle = document.getElementById('formTitle');
+    var tableBody = document.getElementById('tableBody');
+    var emptyMsg = document.getElementById('emptyMsg');
+    var pagination = document.getElementById('pagination');
+    var pageInfo = document.getElementById('pageInfo');
+    var btnPrev = document.getElementById('btnPrev');
+    var btnNext = document.getElementById('btnNext');
+    var btnRefresh = document.getElementById('btnRefresh');
+
+    function getTotalPages() {
+      return Math.max(1, Math.ceil(allPersons.length / PAGE_SIZE));
+    }
+
+    function getPageRows() {
+      var start = (currentPage - 1) * PAGE_SIZE;
+      return allPersons.slice(start, start + PAGE_SIZE);
+    }
+
+    function renderTable() {
+      var rows = getPageRows();
+      tableBody.innerHTML = '';
+      if (allPersons.length === 0) {
+        emptyMsg.style.display = 'block';
+        pagination.style.display = 'none';
+        return;
+      }
+      emptyMsg.style.display = 'none';
+      rows.forEach(function(p) {
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' + escapeHtml(p.name) + '</td>' +
+          '<td>' + escapeHtml(String(p.age)) + '</td>' +
+          '<td>' + escapeHtml(p.hobby || '') + '</td>' +
+          '<td class="actions">' +
+          '<button type="button" class="btn btn-ghost btn-sm btn-edit" data-id="' + escapeHtml(p.id) + '">Edit</button>' +
+          '<button type="button" class="btn btn-danger btn-sm btn-del" data-id="' + escapeHtml(p.id) + '">Delete</button>' +
+          '</td>';
+        tableBody.appendChild(tr);
+      });
+      tableBody.querySelectorAll('.btn-edit').forEach(function(btn) {
+        btn.addEventListener('click', function() { startEdit(btn.getAttribute('data-id')); });
+      });
+      tableBody.querySelectorAll('.btn-del').forEach(function(btn) {
+        btn.addEventListener('click', function() { doDelete(btn.getAttribute('data-id')); });
+      });
+
+      var total = getTotalPages();
+      pagination.style.display = 'flex';
+      pageInfo.textContent = 'Page ' + currentPage + ' of ' + total + ' (' + allPersons.length + ' total)';
+      btnPrev.disabled = currentPage <= 1;
+      btnNext.disabled = currentPage >= total;
+    }
+
+    function escapeHtml(s) {
+      if (s == null) return '';
+      var div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    function loadPersons() {
+      fetch(API)
+        .then(function(r) { if (!r.ok) throw new Error(r.statusText); return r.json(); })
+        .then(function(data) {
+          allPersons = Array.isArray(data) ? data : [];
+          currentPage = Math.min(currentPage, getTotalPages()) || 1;
+          renderTable();
+        })
+        .catch(function(e) {
+          allPersons = [];
+          renderTable();
+          tableBody.innerHTML = '<tr><td colspan="4" class="empty-msg">Failed to load: ' + escapeHtml(e.message) + '</td></tr>';
+        });
+    }
+
+    function resetForm() {
+      editingId = null;
+      inputName.value = '';
+      inputAge.value = '0';
+      inputHobby.value = '';
+      formTitle.textContent = 'Add Person';
+      btnSubmit.textContent = 'Add';
+      btnCancel.style.display = 'none';
+    }
+
+    function startEdit(id) {
+      var p = allPersons.find(function(x) { return x.id === id; });
+      if (!p) return;
+      editingId = id;
+      inputName.value = p.name || '';
+      inputAge.value = String(p.age != null ? p.age : 0);
+      inputHobby.value = p.hobby || '';
+      formTitle.textContent = 'Edit Person';
+      btnSubmit.textContent = 'Update';
+      btnCancel.style.display = 'inline-block';
+    }
+
+    function doSubmit() {
+      var name = inputName.value.trim();
+      var age = parseInt(inputAge.value, 10) || 0;
+      var hobby = inputHobby.value.trim();
+      if (!name) return;
+
+      if (editingId) {
+        fetch(API + '/' + encodeURIComponent(editingId), {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name, age: age, hobby: hobby })
+        })
+          .then(function(r) { if (!r.ok) throw new Error(r.statusText); return loadPersons(); })
+          .then(resetForm)
+          .catch(function(e) { alert('Update failed: ' + e.message); });
+      } else {
+        fetch(API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name, age: age, hobby: hobby })
+        })
+          .then(function(r) { if (!r.ok) throw new Error(r.statusText); return loadPersons(); })
+          .then(resetForm)
+          .catch(function(e) { alert('Add failed: ' + e.message); });
+      }
+    }
+
+    function doDelete(id) {
+      if (!confirm('Delete this person?')) return;
+      fetch(API + '/' + encodeURIComponent(id), { method: 'DELETE' })
+        .then(function(r) { if (!r.ok) throw new Error(r.statusText); return loadPersons(); })
+        .catch(function(e) { alert('Delete failed: ' + e.message); });
+    }
+
+    btnSubmit.addEventListener('click', doSubmit);
+    btnCancel.addEventListener('click', resetForm);
+    btnRefresh.addEventListener('click', loadPersons);
+    btnPrev.addEventListener('click', function() { if (currentPage > 1) { currentPage--; renderTable(); } });
+    btnNext.addEventListener('click', function() { if (currentPage < getTotalPages()) { currentPage++; renderTable(); } });
+
+    document.getElementById('bodyWrap').style.display = 'none';
+    document.getElementById('method').addEventListener('change', function() {
+      document.getElementById('bodyWrap').style.display =
+        (this.value === 'POST' || this.value === 'PATCH') ? 'block' : 'none';
+    });
+
+    document.querySelectorAll('.raw-preset').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.getElementById('method').value = btn.getAttribute('data-method');
+        document.getElementById('url').value = btn.getAttribute('data-url');
+        document.getElementById('body').value = btn.getAttribute('data-body') || '';
+        document.getElementById('bodyWrap').style.display =
+          (btn.getAttribute('data-method') === 'POST' || btn.getAttribute('data-method') === 'PATCH') ? 'block' : 'none';
+        document.getElementById('sendBtn').click();
+      });
+    });
+
+    function fullUrl(path) {
+      if (path.startsWith('http')) return path;
+      return window.location.origin + (path.startsWith('/') ? path : '/' + path);
+    }
+    document.getElementById('sendBtn').addEventListener('click', function() {
+      var method = document.getElementById('method').value;
+      var path = document.getElementById('url').value.trim();
+      var body = document.getElementById('body').value.trim();
+      if (!path) return;
+      var opts = { method: method, headers: {} };
+      if ((method === 'POST' || method === 'PATCH') && body) {
+        opts.headers['Content-Type'] = 'application/json';
+        opts.body = body;
+      }
+      var respCard = document.getElementById('responseCard');
+      var statusEl = document.getElementById('status');
+      var bodyEl = document.getElementById('responseBody');
+      respCard.style.display = 'block';
+      statusEl.textContent = 'Loading…';
+      statusEl.className = 'status';
+      fetch(fullUrl(path), opts)
+        .then(function(r) {
+          statusEl.textContent = r.status + ' ' + r.statusText;
+          statusEl.className = 'status ' + (r.ok ? 'ok' : 'err');
+          return r.text();
+        })
+        .then(function(text) {
+          try { bodyEl.textContent = JSON.stringify(JSON.parse(text), null, 2); }
+          catch (_) { bodyEl.textContent = text || '(empty)'; }
+        })
+        .catch(function(e) {
+          statusEl.textContent = 'Error';
+          statusEl.className = 'status err';
+          bodyEl.textContent = e.message;
+        });
+    });
+
+    loadPersons();
+
+    // --- Devices ---
+    var DEVICE_API = '/api/devices';
+    var DEVICE_PAGE_SIZE = 5;
+    var allDevices = [];
+    var devicePage = 1;
+    var editingDeviceId = null;
+
+    function getDeviceTotalPages() {
+      return Math.max(1, Math.ceil(allDevices.length / DEVICE_PAGE_SIZE));
+    }
+    function getDevicePageRows() {
+      var start = (devicePage - 1) * DEVICE_PAGE_SIZE;
+      return allDevices.slice(start, start + DEVICE_PAGE_SIZE);
+    }
+    function renderDeviceTable() {
+      var rows = getDevicePageRows();
+      var tbody = document.getElementById('devTableBody');
+      var emptyMsg = document.getElementById('devEmptyMsg');
+      var pagination = document.getElementById('devPagination');
+      var pageInfo = document.getElementById('devPageInfo');
+      tbody.innerHTML = '';
+      if (allDevices.length === 0) {
+        emptyMsg.style.display = 'block';
+        pagination.style.display = 'none';
+        return;
+      }
+      emptyMsg.style.display = 'none';
+      rows.forEach(function(d) {
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' + escapeHtml(d.name) + '</td>' +
+          '<td>' + escapeHtml(d.location || '') + '</td>' +
+          '<td>' + (d.onOff ? 'On' : 'Off') + '</td>' +
+          '<td>' + escapeHtml(String(d.level != null ? d.level : 0)) + '</td>' +
+          '<td class="actions">' +
+          '<button type="button" class="btn btn-ghost btn-sm dev-edit" data-id="' + escapeHtml(d.id) + '">Edit</button>' +
+          '<button type="button" class="btn btn-danger btn-sm dev-del" data-id="' + escapeHtml(d.id) + '">Delete</button>' +
+          '</td>';
+        tbody.appendChild(tr);
+      });
+      tbody.querySelectorAll('.dev-edit').forEach(function(btn) {
+        btn.addEventListener('click', function() { startEditDevice(btn.getAttribute('data-id')); });
+      });
+      tbody.querySelectorAll('.dev-del').forEach(function(btn) {
+        btn.addEventListener('click', function() { doDeleteDevice(btn.getAttribute('data-id')); });
+      });
+      var total = getDeviceTotalPages();
+      pagination.style.display = 'flex';
+      pageInfo.textContent = 'Page ' + devicePage + ' of ' + total + ' (' + allDevices.length + ' total)';
+      document.getElementById('devBtnPrev').disabled = devicePage <= 1;
+      document.getElementById('devBtnNext').disabled = devicePage >= total;
+    }
+    function loadDevices() {
+      fetch(DEVICE_API)
+        .then(function(r) { if (!r.ok) throw new Error(r.statusText); return r.json(); })
+        .then(function(data) {
+          allDevices = Array.isArray(data) ? data : [];
+          devicePage = Math.min(devicePage, getDeviceTotalPages()) || 1;
+          renderDeviceTable();
+        })
+        .catch(function(e) {
+          allDevices = [];
+          renderDeviceTable();
+          document.getElementById('devTableBody').innerHTML =
+            '<tr><td colspan="5" class="empty-msg">Failed to load: ' + escapeHtml(e.message) + '</td></tr>';
+        });
+    }
+    function resetDeviceForm() {
+      editingDeviceId = null;
+      document.getElementById('devInputName').value = '';
+      document.getElementById('devInputLocation').value = '';
+      document.getElementById('devInputOnOff').checked = false;
+      document.getElementById('devInputLevel').value = '0';
+      document.getElementById('deviceFormTitle').textContent = 'Add Device';
+      document.getElementById('devBtnSubmit').textContent = 'Add';
+      document.getElementById('devBtnCancel').style.display = 'none';
+    }
+    function startEditDevice(id) {
+      var d = allDevices.find(function(x) { return x.id === id; });
+      if (!d) return;
+      editingDeviceId = id;
+      document.getElementById('devInputName').value = d.name || '';
+      document.getElementById('devInputLocation').value = d.location || '';
+      document.getElementById('devInputOnOff').checked = !!d.onOff;
+      document.getElementById('devInputLevel').value = String(d.level != null ? d.level : 0);
+      document.getElementById('deviceFormTitle').textContent = 'Edit Device';
+      document.getElementById('devBtnSubmit').textContent = 'Update';
+      document.getElementById('devBtnCancel').style.display = 'inline-block';
+    }
+    function doSubmitDevice() {
+      var name = document.getElementById('devInputName').value.trim();
+      var location = document.getElementById('devInputLocation').value.trim();
+      var onOff = document.getElementById('devInputOnOff').checked;
+      var level = parseInt(document.getElementById('devInputLevel').value, 10) || 0;
+      if (!name) return;
+      var body = JSON.stringify({ name: name, location: location, onOff: onOff, level: level });
+      if (editingDeviceId) {
+        fetch(DEVICE_API + '/' + encodeURIComponent(editingDeviceId), {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: body
+        }).then(function(r) { if (!r.ok) throw new Error(r.statusText); return loadDevices(); })
+          .then(resetDeviceForm).catch(function(e) { alert('Update failed: ' + e.message); });
+      } else {
+        fetch(DEVICE_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: body
+        }).then(function(r) { if (!r.ok) throw new Error(r.statusText); return loadDevices(); })
+          .then(resetDeviceForm).catch(function(e) { alert('Add failed: ' + e.message); });
+      }
+    }
+    function doDeleteDevice(id) {
+      if (!confirm('Delete this device?')) return;
+      fetch(DEVICE_API + '/' + encodeURIComponent(id), { method: 'DELETE' })
+        .then(function(r) { if (!r.ok) throw new Error(r.statusText); return loadDevices(); })
+        .catch(function(e) { alert('Delete failed: ' + e.message); });
+    }
+    document.getElementById('devBtnSubmit').addEventListener('click', doSubmitDevice);
+    document.getElementById('devBtnCancel').addEventListener('click', resetDeviceForm);
+    document.getElementById('devBtnRefresh').addEventListener('click', loadDevices);
+    document.getElementById('devBtnPrev').addEventListener('click', function() {
+      if (devicePage > 1) { devicePage--; renderDeviceTable(); }
+    });
+    document.getElementById('devBtnNext').addEventListener('click', function() {
+      if (devicePage < getDeviceTotalPages()) { devicePage++; renderDeviceTable(); }
+    });
+    loadDevices();
+  </script>
+</body>
+</html>

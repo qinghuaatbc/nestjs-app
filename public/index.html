@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Home</title>
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --surface: #18181c;
+      --border: #2a2a30;
+      --text: #e4e4e7;
+      --muted: #71717a;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      margin-bottom: 32px;
+      letter-spacing: -0.02em;
+    }
+    .links {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 280px;
+    }
+    .links a {
+      display: block;
+      padding: 16px 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 500;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .links a:hover {
+      border-color: var(--accent);
+      background: rgba(59, 130, 246, 0.08);
+    }
+    .links .desc {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 400;
+      margin-top: 4px;
+    }
+    .ip-box {
+      min-width: 280px;
+      padding: 16px 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+    .ip-box .label { color: var(--muted); margin-right: 8px; }
+    .ip-box .value { font-family: ui-monospace, monospace; }
+    .ip-box .row { margin-bottom: 8px; }
+    .ip-box .row:last-child { margin-bottom: 0; }
+  </style>
+</head>
+<body>
+  <h1>Home</h1>
+  <div class="ip-box" id="ipBox">
+    <div class="row"><span class="label">Local:</span><span class="value" id="localIp">—</span></div>
+    <div class="row"><span class="label">Public:</span><span class="value" id="publicIp">—</span></div>
+  </div>
+  <nav class="links">
+    <a href="/s/player.html">
+      <span>M3U8 HLS Player</span>
+      <div class="desc">CCTV streams (CCTV4, CCTV5, CCTV6)</div>
+    </a>
+    <a href="/s/media.html">
+      <span>Media Player</span>
+      <div class="desc">Play movies and videos from URL (MP4, M3U8)</div>
+    </a>
+    <a href="/s/files.html">
+      <span>File Server</span>
+      <div class="desc">Browse and download files from the server</div>
+    </a>
+    <a href="/s/rest-test.html">
+      <span>REST Test</span>
+      <div class="desc">Test HTTP REST API (e.g. /api/persons, /api/info)</div>
+    </a>
+    <a href="/s/websocket-test.html">
+      <span>WebSocket Test</span>
+      <div class="desc">Live person & device events via Socket.IO</div>
+    </a>
+    <a href="/s/mqtt-test.html">
+      <span>MQTT Test</span>
+      <div class="desc">Live person & device events via MQTT (add/edit/delete)</div>
+    </a>
+  </nav>
+  <script>
+    (function() {
+      var localEl = document.getElementById('localIp');
+      var publicEl = document.getElementById('publicIp');
+      fetch('/api/info')
+        .then(function(r) { if (!r.ok) throw new Error(); return r.json(); })
+        .then(function(data) {
+          localEl.textContent = (data.local && data.local.length) ? data.local.join(', ') : '—';
+          publicEl.textContent = data.public || '—';
+        })
+        .catch(function() {
+          localEl.textContent = window.location.hostname || '—';
+          publicEl.textContent = '—';
+        });
+    })();
+  </script>
+</body>
+</html>

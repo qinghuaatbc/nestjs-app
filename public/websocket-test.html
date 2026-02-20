@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebSocket Test</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --surface: #18181c;
+      --border: #2a2a30;
+      --text: #e4e4e7;
+      --muted: #71717a;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --green: #22c55e;
+      --red: #f87171;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .wrap { max-width: 900px; margin: 0 auto; }
+    h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 20px; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .home-link { margin-bottom: 16px; }
+    .home-link a { color: var(--muted); font-size: 13px; text-decoration: none; }
+    .home-link a:hover { color: var(--accent); }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    .status.connected { background: rgba(34, 197, 94, 0.15); color: var(--green); }
+    .status.disconnected { background: rgba(248, 113, 113, 0.15); color: var(--red); }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .status.connected .status-dot { animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: 0.5; } }
+
+    .section-title { font-size: 14px; font-weight: 600; color: var(--muted); margin-bottom: 12px; }
+    .event-list { max-height: 220px; overflow-y: auto; font-size: 13px; }
+    .event-item {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      font-family: ui-monospace, monospace;
+    }
+    .event-item:last-child { border-bottom: none; }
+    .event-time { color: var(--muted); font-size: 11px; margin-right: 8px; }
+    .event-name { color: var(--accent); font-weight: 500; }
+    .event-payload { margin-top: 6px; color: var(--text); word-break: break-all; }
+    .event-payload pre { margin: 0; font-size: 12px; white-space: pre-wrap; }
+
+    /* Forms & list */
+    .form-row { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+    .form-row label { min-width: 70px; font-size: 13px; color: var(--muted); }
+    input[type="text"], input[type="number"] {
+      padding: 8px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+    }
+    input[type="number"] { width: 80px; }
+    input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn:hover { background: var(--accent-hover); }
+    .btn-ghost { background: var(--border); color: var(--text); }
+    .btn-ghost:hover { background: #3f3f46; }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-danger:hover { opacity: 0.9; }
+    .btn-sm { padding: 6px 10px; font-size: 12px; margin-left: 4px; }
+    .list-wrap { margin-top: 12px; }
+    .list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .list-item:last-child { border-bottom: none; }
+    .list-item .info { flex: 1; }
+    .list-item .actions { white-space: nowrap; }
+    .edit-hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="home-link"><a href="/s/index.html">← Home</a></div>
+    <h1>WebSocket Test</h1>
+    <div id="status" class="status disconnected">
+      <span class="status-dot"></span>
+      <span id="statusText">Disconnected</span>
+    </div>
+
+    <!-- Person: Add / Edit / Delete -->
+    <div class="card">
+      <div class="section-title">Person — Add / Edit / Delete</div>
+      <form id="personForm">
+        <input type="hidden" id="personId" value="" />
+        <div class="form-row">
+          <label>Name</label>
+          <input type="text" id="personName" required placeholder="Name" />
+          <label>Age</label>
+          <input type="number" id="personAge" value="0" min="0" />
+          <label>Hobby</label>
+          <input type="text" id="personHobby" placeholder="Hobby" />
+        </div>
+        <div class="form-row">
+          <button type="submit" class="btn" id="personSubmit">Add Person</button>
+          <button type="button" class="btn btn-ghost" id="personCancel" style="display:none;">Cancel</button>
+        </div>
+      </form>
+      <div id="personEditHint" class="edit-hint" style="display:none;">Editing: <span id="personEditId"></span></div>
+      <div class="list-wrap" id="personList"></div>
+    </div>
+
+    <!-- Device: Add / Edit / Delete -->
+    <div class="card">
+      <div class="section-title">Device — Add / Edit / Delete</div>
+      <form id="deviceForm">
+        <input type="hidden" id="deviceId" value="" />
+        <div class="form-row">
+          <label>Name</label>
+          <input type="text" id="deviceName" required placeholder="Name" />
+          <label>Location</label>
+          <input type="text" id="deviceLocation" placeholder="Location" />
+          <label>On</label>
+          <input type="checkbox" id="deviceOnOff" />
+          <label>Level</label>
+          <input type="number" id="deviceLevel" value="0" min="0" max="100" />
+        </div>
+        <div class="form-row">
+          <button type="submit" class="btn" id="deviceSubmit">Add Device</button>
+          <button type="button" class="btn btn-ghost" id="deviceCancel" style="display:none;">Cancel</button>
+        </div>
+      </form>
+      <div id="deviceEditHint" class="edit-hint" style="display:none;">Editing: <span id="deviceEditId"></span></div>
+      <div class="list-wrap" id="deviceList"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Person events (live)</div>
+      <div id="personEvents" class="event-list"></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Device events (live)</div>
+      <div id="deviceEvents" class="event-list"></div>
+    </div>
+  </div>
+  <script>
+    (function() {
+      var MAX_EVENTS = 50;
+      var origin = window.location.origin;
+      var personEl = document.getElementById('personEvents');
+      var deviceEl = document.getElementById('deviceEvents');
+      var statusEl = document.getElementById('status');
+      var statusText = document.getElementById('statusText');
+
+      function addEvent(container, action, payload) {
+        var item = document.createElement('div');
+        item.className = 'event-item';
+        item.innerHTML =
+          '<span class="event-time">' + new Date().toLocaleTimeString() + '</span>' +
+          '<span class="event-name">' + action + '</span>' +
+          '<div class="event-payload"><pre>' + escapeHtml(JSON.stringify(payload, null, 2)) + '</pre></div>';
+        container.insertBefore(item, container.firstChild);
+        while (container.children.length > MAX_EVENTS) container.removeChild(container.lastChild);
+      }
+      function escapeHtml(s) {
+        var div = document.createElement('div');
+        div.textContent = s;
+        return div.innerHTML;
+      }
+      function setConnected(ok) {
+        statusEl.className = 'status ' + (ok ? 'connected' : 'disconnected');
+        statusText.textContent = ok ? 'Connected' : 'Disconnected';
+      }
+
+      // --- Person ---
+      var personForm = document.getElementById('personForm');
+      var personId = document.getElementById('personId');
+      var personName = document.getElementById('personName');
+      var personAge = document.getElementById('personAge');
+      var personHobby = document.getElementById('personHobby');
+      var personSubmit = document.getElementById('personSubmit');
+      var personCancel = document.getElementById('personCancel');
+      var personEditHint = document.getElementById('personEditHint');
+      var personEditId = document.getElementById('personEditId');
+      var personList = document.getElementById('personList');
+
+      function loadPersons() {
+        fetch(origin + '/api/persons').then(function(r) { return r.json(); }).then(function(arr) {
+          personList.innerHTML = '';
+          arr.forEach(function(p) {
+            var row = document.createElement('div');
+            row.className = 'list-item';
+            row.innerHTML =
+              '<div class="info">' + escapeHtml(p.name) + ', ' + p.age + ', ' + escapeHtml(p.hobby || '') + '</div>' +
+              '<div class="actions">' +
+              '<button type="button" class="btn btn-ghost btn-sm" data-edit="' + p.id + '">Edit</button>' +
+              '<button type="button" class="btn btn-danger btn-sm" data-delete="' + p.id + '">Delete</button>' +
+              '</div>';
+            personList.appendChild(row);
+          });
+          personList.querySelectorAll('[data-edit]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              var id = btn.getAttribute('data-edit');
+              personId.value = id;
+              personName.value = (arr.find(function(x) { return x.id === id; }) || {}).name || '';
+              personAge.value = (arr.find(function(x) { return x.id === id; }) || {}).age ?? 0;
+              personHobby.value = (arr.find(function(x) { return x.id === id; }) || {}).hobby || '';
+              personSubmit.textContent = 'Save';
+              personCancel.style.display = 'inline-block';
+              personEditHint.style.display = 'block';
+              personEditId.textContent = id;
+            });
+          });
+          personList.querySelectorAll('[data-delete]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              var id = btn.getAttribute('data-delete');
+              if (!confirm('Delete this person?')) return;
+              fetch(origin + '/api/persons/' + id, { method: 'DELETE' })
+                .then(function(r) { if (r.ok) loadPersons(); });
+            });
+          });
+        }).catch(function() { personList.innerHTML = '<div class="list-item">Failed to load</div>'; });
+      }
+
+      personForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var id = personId.value;
+        var body = { name: personName.value, age: parseInt(personAge.value, 10) || 0, hobby: personHobby.value || '' };
+        if (id) {
+          fetch(origin + '/api/persons/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+            .then(function(r) { return r.json(); })
+            .then(function() { personId.value = ''; personSubmit.textContent = 'Add Person'; personCancel.style.display = 'none'; personEditHint.style.display = 'none'; loadPersons(); })
+            .catch(function() {});
+        } else {
+          fetch(origin + '/api/persons', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+            .then(function(r) { return r.json(); })
+            .then(function() { loadPersons(); })
+            .catch(function() {});
+        }
+      });
+      personCancel.addEventListener('click', function() {
+        personId.value = ''; personSubmit.textContent = 'Add Person'; personCancel.style.display = 'none'; personEditHint.style.display = 'none';
+      });
+
+      // --- Device ---
+      var deviceForm = document.getElementById('deviceForm');
+      var deviceId = document.getElementById('deviceId');
+      var deviceName = document.getElementById('deviceName');
+      var deviceLocation = document.getElementById('deviceLocation');
+      var deviceOnOff = document.getElementById('deviceOnOff');
+      var deviceLevel = document.getElementById('deviceLevel');
+      var deviceSubmit = document.getElementById('deviceSubmit');
+      var deviceCancel = document.getElementById('deviceCancel');
+      var deviceEditHint = document.getElementById('deviceEditHint');
+      var deviceEditId = document.getElementById('deviceEditId');
+      var deviceList = document.getElementById('deviceList');
+
+      function loadDevices() {
+        fetch(origin + '/api/devices').then(function(r) { return r.json(); }).then(function(arr) {
+          deviceList.innerHTML = '';
+          arr.forEach(function(d) {
+            var row = document.createElement('div');
+            row.className = 'list-item';
+            row.innerHTML =
+              '<div class="info">' + escapeHtml(d.name) + ' @ ' + escapeHtml(d.location || '') + ' — ' + (d.onOff ? 'ON' : 'OFF') + ' level ' + d.level + '</div>' +
+              '<div class="actions">' +
+              '<button type="button" class="btn btn-ghost btn-sm" data-edit="' + d.id + '">Edit</button>' +
+              '<button type="button" class="btn btn-danger btn-sm" data-delete="' + d.id + '">Delete</button>' +
+              '</div>';
+            deviceList.appendChild(row);
+          });
+          deviceList.querySelectorAll('[data-edit]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              var id = btn.getAttribute('data-edit');
+              var d = arr.find(function(x) { return x.id === id; }) || {};
+              deviceId.value = id;
+              deviceName.value = d.name || '';
+              deviceLocation.value = d.location || '';
+              deviceOnOff.checked = !!d.onOff;
+              deviceLevel.value = d.level ?? 0;
+              deviceSubmit.textContent = 'Save';
+              deviceCancel.style.display = 'inline-block';
+              deviceEditHint.style.display = 'block';
+              deviceEditId.textContent = id;
+            });
+          });
+          deviceList.querySelectorAll('[data-delete]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              var id = btn.getAttribute('data-delete');
+              if (!confirm('Delete this device?')) return;
+              fetch(origin + '/api/devices/' + id, { method: 'DELETE' })
+                .then(function(r) { if (r.ok) loadDevices(); });
+            });
+          });
+        }).catch(function() { deviceList.innerHTML = '<div class="list-item">Failed to load</div>'; });
+      }
+
+      deviceForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var id = deviceId.value;
+        var body = {
+          name: deviceName.value,
+          location: deviceLocation.value || '',
+          onOff: deviceOnOff.checked,
+          level: parseInt(deviceLevel.value, 10) || 0
+        };
+        if (id) {
+          fetch(origin + '/api/devices/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+            .then(function(r) { return r.json(); })
+            .then(function() { deviceId.value = ''; deviceSubmit.textContent = 'Add Device'; deviceCancel.style.display = 'none'; deviceEditHint.style.display = 'none'; loadDevices(); })
+            .catch(function() {});
+        } else {
+          fetch(origin + '/api/devices', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+            .then(function(r) { return r.json(); })
+            .then(function() { loadDevices(); })
+            .catch(function() {});
+        }
+      });
+      deviceCancel.addEventListener('click', function() {
+        deviceId.value = ''; deviceSubmit.textContent = 'Add Device'; deviceCancel.style.display = 'none'; deviceEditHint.style.display = 'none';
+      });
+
+      loadPersons();
+      loadDevices();
+
+      var socket = io(origin, { path: '/socket.io/', transports: ['websocket', 'polling'] });
+      socket.on('connect', function() { setConnected(true); });
+      socket.on('disconnect', function() { setConnected(false); });
+      socket.on('person', function(msg) { addEvent(personEl, msg.action, msg.payload); });
+      socket.on('device', function(msg) { addEvent(deviceEl, msg.action, msg.payload); });
+    })();
+  </script>
+</body>
+</html>
