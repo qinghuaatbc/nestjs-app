@@ -75,4 +75,9 @@ export class ChatGateway {
     const roomName = roomId ? ROOM_PREFIX + roomId : ROOM_PREFIX + 'default';
     this.server.to(roomName).emit('chat:message', payload);
   }
+
+  emitMessageDeleted(messageId: string, roomId?: string | null) {
+    const roomName = roomId ? ROOM_PREFIX + roomId : ROOM_PREFIX + 'default';
+    this.server.to(roomName).emit('chat:messageDeleted', { id: messageId });
+  }
 }

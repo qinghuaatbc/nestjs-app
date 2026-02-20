@@ -1,6 +1,8 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { join } from 'path';
+import { unlink } from 'fs/promises';
 import { ChatRoom } from './chat-room.entity';
 import { ChatMessage, ChatUser } from './chat.entity';
 
@@ -105,5 +107,27 @@ export class ChatService {
 
   async listUsers(): Promise<ChatUser[]> {
     return this.userRepo.find({ order: { createdAt: 'ASC' } });
+  }
+
+  async deleteMessage(
+    messageId: string,
+    author?: string | null,
+    userId?: string | null,
+  ): Promise<{ roomId: string | null }> {
+    const msg = await this.repo.findOne({ where: { id: messageId } });
+    if (!msg) throw new NotFoundException('Message not found');
+    const authorMatch = author != null && author !== '' && (msg.author || '').toLowerCase() === (author || '').trim().toLowerCase();
+    const userMatch = userId != null && userId !== '' && msg.userId != null && msg.userId === String(userId).trim();
+    if (!authorMatch && !userMatch) throw new ForbiddenException('Only the sender can delete this message');
+    if (msg.attachmentPath) {
+      try {
+        const fullPath = join(process.cwd(), 'public', msg.attachmentPath);
+        await unlink(fullPath);
+      } catch {
+        // ignore file delete errors (e.g. already missing)
+      }
+    }
+    await this.repo.remove(msg);
+    return { roomId: msg.roomId };
   }
 }

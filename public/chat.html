@@ -127,6 +127,44 @@
     .chat-item .attachment { margin-top: 8px; }
     .chat-item .chat-img { max-width: 100%; max-height: 280px; border-radius: 8px; display: block; }
     .chat-item .attachment a { color: var(--accent); font-size: 13px; }
+    .chat-item { position: relative; }
+    .chat-delete-btn {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      border: none;
+      border-radius: 6px;
+      background: rgba(0,0,0,0.15);
+      color: var(--text);
+      font-size: 12px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .chat-delete-btn:hover { background: rgba(248, 113, 113, 0.4); color: #fff; }
+    body.day-mode .chat-delete-btn { background: rgba(0,0,0,0.08); }
+    body.day-mode .chat-delete-btn:hover { background: rgba(248, 113, 113, 0.5); }
+    .chat-delete-bar {
+      display: none;
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid var(--border);
+      gap: 8px;
+    }
+    .chat-delete-bar.visible { display: flex; }
+    .chat-delete-bar button {
+      padding: 4px 10px;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .chat-cancel-btn { background: var(--border); color: var(--text); }
+    .chat-cancel-btn:hover { background: #3f3f46; }
+    .chat-do-delete-btn { background: rgba(248, 113, 113, 0.4); color: #fff; }
+    .chat-do-delete-btn:hover { background: #f87171; }
     .chat-form {
       flex-shrink: 0;
       display: flex;
@@ -223,7 +261,7 @@
       <input type="text" name="author" id="author" placeholder="Your name" maxlength="128" />
       <input type="text" name="content" id="content" placeholder="Message..." />
       <div class="file-row">
-        <input type="file" id="fileInput" name="file" accept="image/*,.pdf,application/pdf,.doc,.docx,.txt" title="Attach file or image" />
+        <input type="file" id="fileInput" name="file" accept="image/*,video/*,.pdf,application/pdf,.doc,.docx,.txt" title="Attach image, video (e.g. MP4), PDF or document" />
         <span id="fileChoice" class="file-choice" style="display:none;"></span>
         <button type="button" class="btn btn-cancel" id="btnCancelFile" style="display:none;">Cancel</button>
       </div>
@@ -341,10 +379,15 @@
         if (!path) return '';
         return origin + '/s/' + path;
       }
+      function removeMessageById(id) {
+        var row = chatList.querySelector('[data-message-id="' + id + '"]');
+        if (row) row.remove();
+      }
       function appendMessage(msg) {
         var isMe = isCaller(msg);
         var row = document.createElement('div');
         row.className = 'chat-row ' + (isMe ? 'caller' : 'callee');
+        row.setAttribute('data-message-id', msg.id || '');
         var item = document.createElement('div');
         item.className = 'chat-item ' + (isMe ? 'caller' : 'callee');
         var contentHtml = '<div class="content">' + escapeHtml(msg.content || '') + '</div>';
@@ -364,6 +407,41 @@
           '<span class="author">' + escapeHtml(msg.author) + '</span>' +
           '<span class="time">' + formatTime(msg.createdAt) + '</span>' +
           contentHtml;
+        if (isMe) {
+          var bar = document.createElement('div');
+          bar.className = 'chat-delete-bar';
+          bar.innerHTML = '<button type="button" class="chat-cancel-btn">Cancel</button><button type="button" class="chat-do-delete-btn">Delete</button>';
+          item.appendChild(bar);
+          var cancelBtn = bar.querySelector('.chat-cancel-btn');
+          var doDeleteBtn = bar.querySelector('.chat-do-delete-btn');
+          cancelBtn.addEventListener('click', function(e) { e.stopPropagation(); bar.classList.remove('visible'); });
+          doDeleteBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            bar.classList.remove('visible');
+            if (!confirm('Delete this message and attachment?')) return;
+            fetch(origin + '/api/chat/messages/' + encodeURIComponent(msg.id), {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ author: getAuthor() })
+            }).then(function(r) {
+              if (r.ok) { removeMessageById(msg.id); return; }
+              return r.json().then(function(e) { throw new Error(e.message || 'Delete failed'); });
+            }).catch(function(e) { alert(e.message || 'Delete failed'); });
+          });
+          var longPressTimer = null;
+          function clearLongPress() {
+            if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+          }
+          function showBar() { bar.classList.add('visible'); clearLongPress(); }
+          item.addEventListener('pointerdown', function(e) {
+            if (e.button !== 0 && e.pointerType !== 'touch') return;
+            clearLongPress();
+            longPressTimer = setTimeout(showBar, 500);
+          });
+          item.addEventListener('pointerup', clearLongPress);
+          item.addEventListener('pointerleave', clearLongPress);
+          item.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+        }
         row.appendChild(item);
         chatList.appendChild(row);
         chatList.scrollTop = chatList.scrollHeight;
@@ -417,6 +495,7 @@
       });
       socket.on('disconnect', function() { statusEl.textContent = 'Disconnected'; statusEl.className = 'status disconnected'; });
       socket.on('chat:message', appendMessage);
+      socket.on('chat:messageDeleted', function(p) { if (p && p.id) removeMessageById(p.id); });
 
       if (roomSelect) {
         roomSelect.addEventListener('change', function() {

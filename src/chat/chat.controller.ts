@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Param,
   Post,
   Query,
   UploadedFile,
@@ -51,6 +53,17 @@ export class ChatController {
     return this.chatService.findRecent(roomId || null, n);
   }
 
+  @Delete('messages/:id')
+  async deleteMessage(
+    @Param('id') id: string,
+    @Body('author') author?: string,
+    @Body('userId') userId?: string,
+  ) {
+    const { roomId } = await this.chatService.deleteMessage(id, author ?? null, userId ?? null);
+    this.chatGateway.emitMessageDeleted(id, roomId);
+    return { ok: true };
+  }
+
   @Post('register')
   async register(@Body() body: { username?: string }) {
     const user = await this.chatService.register(body?.username ?? '');
@@ -60,7 +73,15 @@ export class ChatController {
   @Post('upload')
   @UseInterceptors(
     FileInterceptor('file', {
-      limits: { fileSize: 10 * 1024 * 1024 },
+      limits: { fileSize: 1024 * 1024 * 1024 },
+      fileFilter: (_req, file, cb) => {
+        const mime = (file.mimetype || '').toLowerCase();
+        const ok =
+          mime.startsWith('video/') ||
+          mime.startsWith('image/') ||
+          mime === 'application/pdf';
+        cb(null, !!ok);
+      },
       storage: diskStorage({
         destination: (_req, _file, cb) => {
           if (!existsSync(CHAT_UPLOADS)) mkdirSync(CHAT_UPLOADS, { recursive: true });
