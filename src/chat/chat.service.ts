@@ -46,10 +46,21 @@ export class ChatService {
     content: string,
     attachment?: { path: string; name: string; mime: string },
     roomId?: string | null,
+    userId?: string | null,
   ): Promise<ChatMessage> {
+    let authorStr = author || 'Anonymous';
+    let userIdVal: string | null = null;
+    if (userId && String(userId).trim()) {
+      const user = await this.userRepo.findOne({ where: { id: userId.trim() } });
+      if (user) {
+        userIdVal = user.id;
+        authorStr = user.username;
+      }
+    }
     const msg = this.repo.create({
       roomId: roomId ?? null,
-      author: author || 'Anonymous',
+      userId: userIdVal,
+      author: authorStr,
       content: content || '',
       attachmentPath: attachment?.path ?? null,
       attachmentName: attachment?.name ?? null,
@@ -90,5 +101,9 @@ export class ChatService {
     const name = (username || '').trim().toLowerCase();
     if (!name) return null;
     return this.userRepo.findOne({ where: { username: name } });
+  }
+
+  async listUsers(): Promise<ChatUser[]> {
+    return this.userRepo.find({ order: { createdAt: 'ASC' } });
   }
 }

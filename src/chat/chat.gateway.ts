@@ -33,19 +33,26 @@ export class ChatGateway {
 
   @SubscribeMessage('chat:message')
   async handleMessage(
-    @MessageBody() payload: { author?: string; content: string; roomId?: string | null },
+    @MessageBody() payload: {
+      author?: string;
+      content: string;
+      roomId?: string | null;
+      userId?: string | null;
+    },
   ) {
     const author = (payload?.author && String(payload.author).trim()) || 'Anonymous';
     const content = payload?.content != null ? String(payload.content).trim() : '';
     const roomId = payload?.roomId != null && payload.roomId !== '' ? String(payload.roomId) : null;
+    const userId = payload?.userId != null && payload.userId !== '' ? String(payload.userId) : null;
     if (!content) return;
-    const msg = await this.chatService.create(author, content, undefined, roomId);
+    const msg = await this.chatService.create(author, content, undefined, roomId, userId);
     this.emitMessage(msg, roomId);
   }
 
   emitMessage(
     msg: {
       id: string;
+      userId?: string | null;
       author: string;
       content: string;
       createdAt: Date;
@@ -57,6 +64,7 @@ export class ChatGateway {
   ) {
     const payload = {
       id: msg.id,
+      userId: msg.userId ?? null,
       author: msg.author,
       content: msg.content,
       createdAt: msg.createdAt,

@@ -102,6 +102,9 @@
     body.day-mode { --bg: #f4f4f5; --surface: #fff; --border: #e4e4e7; --text: #18181b; --muted: #71717a; }
     .theme-toggle { position: absolute; top: 24px; right: 24px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font-size: 13px; cursor: pointer; }
     .theme-toggle:hover { border-color: var(--accent); }
+    .choose-table { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    .choose-table label { font-size: 13px; color: var(--muted); }
+    .choose-table select { padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; min-width: 140px; }
   </style>
 </head>
 <body class="day-mode">
@@ -109,13 +112,22 @@
   <div class="wrap">
     <p class="home-link"><a href="/s/index.html">← Home</a></p>
     <h1>REST Test</h1>
+    <div class="choose-table">
+      <label for="chooseTable">Table:</label>
+      <select id="chooseTable">
+        <option value="all">All</option>
+        <option value="devices">Devices</option>
+        <option value="customers">Customers</option>
+        <option value="rest">HTTP REST</option>
+      </select>
+    </div>
     <div style="font-size: 12px; color: var(--muted); margin-bottom: 16px;">
       <label style="margin-right: 6px;">Base URL:</label>
       <input type="text" id="baseUrl" placeholder="http://localhost:3000" style="font-family: ui-monospace, monospace; padding: 6px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px; min-width: 260px;" />
     </div>
 
     <!-- Devices -->
-    <div class="card">
+    <div class="card" data-table="devices">
       <h2>Devices</h2>
       <div class="section-title" id="deviceFormTitle">Add Device</div>
       <div class="form-row">
@@ -131,8 +143,10 @@
         <button type="button" class="btn btn-ghost" id="devBtnCancel" style="display:none;">Cancel</button>
       </div>
     </div>
-    <div class="card">
+    <div class="card" data-table="devices">
       <div class="form-row" style="margin-bottom:16px;">
+        <label style="min-width:auto;">Search</label>
+        <input type="text" id="devSearch" placeholder="Filter by name or location..." style="flex:1;min-width:180px;" />
         <button type="button" class="btn btn-ghost btn-sm" id="devBtnRefresh">Refresh</button>
       </div>
       <div class="table-wrap">
@@ -160,7 +174,7 @@
     </div>
 
     <!-- Customers -->
-    <div class="card" id="customerCard">
+    <div class="card" id="customerCard" data-table="customers">
       <h2>Customers</h2>
       <div class="section-title" id="custFormTitle">Add Customer</div>
       <div class="form-row">
@@ -182,6 +196,8 @@
         <button type="button" class="btn btn-ghost" id="custBtnCancel" style="display:none;">Cancel</button>
       </div>
       <div class="form-row" style="margin-top:12px;">
+        <label style="min-width:auto;">Search</label>
+        <input type="text" id="custSearch" placeholder="Filter by name, address, city or panel..." style="flex:1;min-width:180px;" />
         <button type="button" class="btn btn-ghost btn-sm" id="custBtnRefresh">Refresh</button>
       </div>
       <div class="table-wrap">
@@ -202,7 +218,7 @@
     </div>
 
     <!-- HTTP REST -->
-    <div class="card">
+    <div class="card" data-table="rest">
       <h2>HTTP REST</h2>
       <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Send any request to API endpoints. Use path (e.g. /api/devices) or full URL.</p>
       <div class="raw-presets" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
@@ -252,6 +268,16 @@
       return div.innerHTML;
     }
 
+    (function() {
+      var sel = document.getElementById('chooseTable');
+      function applyTableFilter() {
+        var v = (sel && sel.value) ? sel.value : 'all';
+        document.querySelectorAll('.card[data-table]').forEach(function(el) {
+          el.style.display = (v === 'all' || el.getAttribute('data-table') === v) ? 'block' : 'none';
+        });
+      }
+      if (sel) { sel.addEventListener('change', applyTableFilter); applyTableFilter(); }
+    })();
     document.getElementById('bodyWrap').style.display = 'none';
     document.getElementById('method').addEventListener('change', function() {
       document.getElementById('bodyWrap').style.display =
@@ -312,21 +338,32 @@
     var devicePage = 1;
     var editingDeviceId = null;
 
+    function getFilteredDevices() {
+      var q = (document.getElementById('devSearch') && document.getElementById('devSearch').value) ? document.getElementById('devSearch').value.trim().toLowerCase() : '';
+      if (!q) return allDevices;
+      return allDevices.filter(function(d) {
+        return (d.name || '').toLowerCase().indexOf(q) >= 0 ||
+          (d.location || '').toLowerCase().indexOf(q) >= 0;
+      });
+    }
     function getDeviceTotalPages() {
-      return Math.max(1, Math.ceil(allDevices.length / DEVICE_PAGE_SIZE));
+      var filtered = getFilteredDevices();
+      return Math.max(1, Math.ceil(filtered.length / DEVICE_PAGE_SIZE));
     }
     function getDevicePageRows() {
+      var filtered = getFilteredDevices();
       var start = (devicePage - 1) * DEVICE_PAGE_SIZE;
-      return allDevices.slice(start, start + DEVICE_PAGE_SIZE);
+      return filtered.slice(start, start + DEVICE_PAGE_SIZE);
     }
     function renderDeviceTable() {
+      var filtered = getFilteredDevices();
       var rows = getDevicePageRows();
       var tbody = document.getElementById('devTableBody');
       var emptyMsg = document.getElementById('devEmptyMsg');
       var pagination = document.getElementById('devPagination');
       var pageInfo = document.getElementById('devPageInfo');
       tbody.innerHTML = '';
-      if (allDevices.length === 0) {
+      if (filtered.length === 0) {
         emptyMsg.style.display = 'block';
         pagination.style.display = 'none';
         return;
@@ -353,7 +390,7 @@
       });
       var total = getDeviceTotalPages();
       pagination.style.display = 'flex';
-      pageInfo.textContent = 'Page ' + devicePage + ' of ' + total + ' (' + allDevices.length + ' total)';
+      pageInfo.textContent = 'Page ' + devicePage + ' of ' + total + ' (' + filtered.length + ' of ' + allDevices.length + ')';
       document.getElementById('devBtnPrev').disabled = devicePage <= 1;
       document.getElementById('devBtnNext').disabled = devicePage >= total;
     }
@@ -432,6 +469,12 @@
     document.getElementById('devBtnNext').addEventListener('click', function() {
       if (devicePage < getDeviceTotalPages()) { devicePage++; renderDeviceTable(); }
     });
+    if (document.getElementById('devSearch')) {
+      document.getElementById('devSearch').addEventListener('input', function() {
+        devicePage = 1;
+        renderDeviceTable();
+      });
+    }
     loadDevices();
 
     // --- Customers ---
@@ -440,14 +483,25 @@
     var editingCustId = null;
     var custTableBody = document.getElementById('custTableBody');
     var custEmptyMsg = document.getElementById('custEmptyMsg');
+    function getFilteredCustomers() {
+      var q = (document.getElementById('custSearch') && document.getElementById('custSearch').value) ? document.getElementById('custSearch').value.trim().toLowerCase() : '';
+      if (!q) return allCustomers;
+      return allCustomers.filter(function(c) {
+        return (c.name || '').toLowerCase().indexOf(q) >= 0 ||
+          (c.address || '').toLowerCase().indexOf(q) >= 0 ||
+          (c.city || '').toLowerCase().indexOf(q) >= 0 ||
+          (c.panel || '').toLowerCase().indexOf(q) >= 0;
+      });
+    }
     function renderCustomerTable() {
+      var filtered = getFilteredCustomers();
       custTableBody.innerHTML = '';
-      if (allCustomers.length === 0) {
+      if (filtered.length === 0) {
         custEmptyMsg.style.display = 'block';
         return;
       }
       custEmptyMsg.style.display = 'none';
-      allCustomers.forEach(function(c) {
+      filtered.forEach(function(c) {
         var tr = document.createElement('tr');
         tr.innerHTML =
           '<td>' + escapeHtml(c.name || '') + '</td>' +
@@ -537,6 +591,11 @@
     });
     document.getElementById('custBtnCancel').addEventListener('click', resetCustForm);
     document.getElementById('custBtnRefresh').addEventListener('click', loadCustomers);
+    if (document.getElementById('custSearch')) {
+      document.getElementById('custSearch').addEventListener('input', function() {
+        renderCustomerTable();
+      });
+    }
     loadCustomers();
 
     (function() {

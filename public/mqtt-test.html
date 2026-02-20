@@ -117,6 +117,9 @@
     body.day-mode { --bg: #f4f4f5; --surface: #fff; --border: #e4e4e7; --text: #18181b; --muted: #71717a; }
     .theme-toggle { position: absolute; top: 24px; right: 24px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font-size: 13px; cursor: pointer; }
     .theme-toggle:hover { border-color: var(--accent); }
+    .choose-table { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    .choose-table label { font-size: 13px; color: var(--muted); }
+    .choose-table select { padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; min-width: 140px; }
   </style>
 </head>
 <body class="day-mode">
@@ -124,6 +127,14 @@
   <div class="wrap">
     <div class="home-link"><a href="/s/index.html">← Home</a></div>
     <h1>MQTT Test</h1>
+    <div class="choose-table">
+      <label for="chooseTable">Table:</label>
+      <select id="chooseTable">
+        <option value="all">All</option>
+        <option value="devices">Devices</option>
+        <option value="customers">Customers</option>
+      </select>
+    </div>
     <div id="status" class="status disconnected">
       <span class="status-dot"></span>
       <span id="statusText">Disconnected</span>
@@ -138,7 +149,7 @@
       <div class="edit-hint">Use MQTT over WebSocket. Set MQTT_BROKER_URL (e.g. mqtt://localhost:1883) for the server.</div>
     </div>
 
-    <div class="card">
+    <div class="card" data-table="devices">
       <div class="section-title">Device — Add / Edit / Delete</div>
       <form id="deviceForm">
         <input type="hidden" id="deviceId" value="" />
@@ -158,11 +169,15 @@
         </div>
       </form>
       <div id="deviceEditHint" class="edit-hint" style="display:none;">Editing: <span id="deviceEditId"></span></div>
+      <div class="form-row" style="margin-bottom:8px;">
+        <label style="min-width:auto;">Search</label>
+        <input type="text" id="deviceSearch" placeholder="Filter by name or location..." style="flex:1;min-width:160px;" />
+      </div>
       <div class="list-wrap" id="deviceList"></div>
     </div>
 
     <!-- Customer: Add / Edit / Delete -->
-    <div class="card">
+    <div class="card" data-table="customers">
       <div class="section-title">Customer — Add / Edit / Delete</div>
       <form id="customerForm">
         <input type="hidden" id="customerId" value="" />
@@ -186,19 +201,33 @@
         </div>
       </form>
       <div id="customerEditHint" class="edit-hint" style="display:none;">Editing: <span id="customerEditId"></span></div>
+      <div class="form-row" style="margin-bottom:8px;">
+        <label style="min-width:auto;">Search</label>
+        <input type="text" id="customerSearch" placeholder="Filter by name, address, city or panel..." style="flex:1;min-width:160px;" />
+      </div>
       <div class="list-wrap" id="customerList"></div>
     </div>
 
-    <div class="card">
+    <div class="card" data-table="devices">
       <div class="section-title">Device events (live via MQTT)</div>
       <div id="deviceEvents" class="event-list"></div>
     </div>
-    <div class="card">
+    <div class="card" data-table="customers">
       <div class="section-title">Customer events (live via MQTT)</div>
       <div id="customerEvents" class="event-list"></div>
     </div>
   </div>
   <script>
+    (function() {
+      var chooseTable = document.getElementById('chooseTable');
+      function applyTableFilter() {
+        var v = (chooseTable && chooseTable.value) ? chooseTable.value : 'all';
+        document.querySelectorAll('.card[data-table]').forEach(function(el) {
+          el.style.display = (v === 'all' || el.getAttribute('data-table') === v) ? 'block' : 'none';
+        });
+      }
+      if (chooseTable) { chooseTable.addEventListener('change', applyTableFilter); applyTableFilter(); }
+    })();
     (function() {
       var MAX_EVENTS = 50;
       var origin = window.location.origin;
@@ -279,46 +308,60 @@
       var deviceEditHint = document.getElementById('deviceEditHint');
       var deviceEditId = document.getElementById('deviceEditId');
       var deviceList = document.getElementById('deviceList');
+      var deviceSearchInput = document.getElementById('deviceSearch');
+      var allDevicesData = [];
 
+      function getFilteredDevices() {
+        var q = (deviceSearchInput && deviceSearchInput.value) ? deviceSearchInput.value.trim().toLowerCase() : '';
+        if (!q) return allDevicesData;
+        return allDevicesData.filter(function(d) {
+          return (d.name || '').toLowerCase().indexOf(q) >= 0 || (d.location || '').toLowerCase().indexOf(q) >= 0;
+        });
+      }
+      function renderDeviceList(arr) {
+        deviceList.innerHTML = '';
+        (arr || []).forEach(function(d) {
+          var row = document.createElement('div');
+          row.className = 'list-item';
+          row.innerHTML =
+            '<div class="info">' + escapeHtml(d.name) + ' @ ' + escapeHtml(d.location || '') + ' — ' + (d.onOff ? 'ON' : 'OFF') + ' level ' + d.level + '</div>' +
+            '<div class="actions">' +
+            '<button type="button" class="btn btn-ghost btn-sm" data-edit="' + d.id + '">Edit</button>' +
+            '<button type="button" class="btn btn-danger btn-sm" data-delete="' + d.id + '">Delete</button>' +
+            '</div>';
+          deviceList.appendChild(row);
+        });
+        deviceList.querySelectorAll('[data-edit]').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var id = btn.getAttribute('data-edit');
+            var d = allDevicesData.find(function(x) { return x.id === id; }) || {};
+            deviceId.value = id;
+            deviceName.value = d.name || '';
+            deviceLocation.value = d.location || '';
+            deviceOnOff.checked = !!d.onOff;
+            deviceLevel.value = d.level ?? 0;
+            deviceSubmit.textContent = 'Save';
+            deviceCancel.style.display = 'inline-block';
+            deviceEditHint.style.display = 'block';
+            deviceEditId.textContent = id;
+          });
+        });
+        deviceList.querySelectorAll('[data-delete]').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var id = btn.getAttribute('data-delete');
+            if (!confirm('Delete this device?')) return;
+            fetch(origin + '/api/devices/' + id, { method: 'DELETE' })
+              .then(function(r) { if (r.ok) loadDevices(); });
+          });
+        });
+      }
       function loadDevices() {
         fetch(origin + '/api/devices').then(function(r) { return r.json(); }).then(function(arr) {
-          deviceList.innerHTML = '';
-          arr.forEach(function(d) {
-            var row = document.createElement('div');
-            row.className = 'list-item';
-            row.innerHTML =
-              '<div class="info">' + escapeHtml(d.name) + ' @ ' + escapeHtml(d.location || '') + ' — ' + (d.onOff ? 'ON' : 'OFF') + ' level ' + d.level + '</div>' +
-              '<div class="actions">' +
-              '<button type="button" class="btn btn-ghost btn-sm" data-edit="' + d.id + '">Edit</button>' +
-              '<button type="button" class="btn btn-danger btn-sm" data-delete="' + d.id + '">Delete</button>' +
-              '</div>';
-            deviceList.appendChild(row);
-          });
-          deviceList.querySelectorAll('[data-edit]').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-              var id = btn.getAttribute('data-edit');
-              var d = arr.find(function(x) { return x.id === id; }) || {};
-              deviceId.value = id;
-              deviceName.value = d.name || '';
-              deviceLocation.value = d.location || '';
-              deviceOnOff.checked = !!d.onOff;
-              deviceLevel.value = d.level ?? 0;
-              deviceSubmit.textContent = 'Save';
-              deviceCancel.style.display = 'inline-block';
-              deviceEditHint.style.display = 'block';
-              deviceEditId.textContent = id;
-            });
-          });
-          deviceList.querySelectorAll('[data-delete]').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-              var id = btn.getAttribute('data-delete');
-              if (!confirm('Delete this device?')) return;
-              fetch(origin + '/api/devices/' + id, { method: 'DELETE' })
-                .then(function(r) { if (r.ok) loadDevices(); });
-            });
-          });
+          allDevicesData = Array.isArray(arr) ? arr : [];
+          renderDeviceList(getFilteredDevices());
         }).catch(function() { deviceList.innerHTML = '<div class="list-item">Failed to load</div>'; });
       }
+      if (deviceSearchInput) deviceSearchInput.addEventListener('input', function() { renderDeviceList(getFilteredDevices()); });
 
       deviceForm.addEventListener('submit', function(e) {
         e.preventDefault();
@@ -358,11 +401,20 @@
       var customerEditHint = document.getElementById('customerEditHint');
       var customerEditId = document.getElementById('customerEditId');
       var customerList = document.getElementById('customerList');
+      var customerSearchInput = document.getElementById('customerSearch');
+      var allCustomersData = [];
 
-      function loadCustomers() {
-        fetch(origin + '/api/customers').then(function(r) { return r.json(); }).then(function(arr) {
-          customerList.innerHTML = '';
-          (arr || []).forEach(function(c) {
+      function getFilteredCustomers() {
+        var q = (customerSearchInput && customerSearchInput.value) ? customerSearchInput.value.trim().toLowerCase() : '';
+        if (!q) return allCustomersData;
+        return allCustomersData.filter(function(c) {
+          return (c.name || '').toLowerCase().indexOf(q) >= 0 || (c.address || '').toLowerCase().indexOf(q) >= 0 ||
+            (c.city || '').toLowerCase().indexOf(q) >= 0 || (c.panel || '').toLowerCase().indexOf(q) >= 0;
+        });
+      }
+      function renderCustomerList(arr) {
+        customerList.innerHTML = '';
+        (arr || []).forEach(function(c) {
             var row = document.createElement('div');
             row.className = 'list-item';
             row.innerHTML =
@@ -376,7 +428,7 @@
           customerList.querySelectorAll('[data-edit]').forEach(function(btn) {
             btn.addEventListener('click', function() {
               var id = btn.getAttribute('data-edit');
-              var c = (arr || []).find(function(x) { return x.id === id; }) || {};
+              var c = allCustomersData.find(function(x) { return x.id === id; }) || {};
               customerId.value = id;
               customerName.value = c.name || '';
               customerAddress.value = c.address || '';
@@ -397,8 +449,14 @@
                 .then(function(r) { if (r.ok) loadCustomers(); });
             });
           });
+      }
+      function loadCustomers() {
+        fetch(origin + '/api/customers').then(function(r) { return r.json(); }).then(function(arr) {
+          allCustomersData = Array.isArray(arr) ? arr : [];
+          renderCustomerList(getFilteredCustomers());
         }).catch(function() { customerList.innerHTML = '<div class="list-item">Failed to load</div>'; });
       }
+      if (customerSearchInput) customerSearchInput.addEventListener('input', function() { renderCustomerList(getFilteredCustomers()); });
       customerForm.addEventListener('submit', function(e) {
         e.preventDefault();
         var id = customerId.value;

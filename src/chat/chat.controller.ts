@@ -35,6 +35,16 @@ export class ChatController {
     return { id: room.id, name: room.name, createdAt: room.createdAt };
   }
 
+  @Get('user-list')
+  async getUsers() {
+    const users = await this.chatService.listUsers();
+    return users.map((u) => ({
+      id: u.id,
+      username: u.username,
+      createdAt: u.createdAt == null ? null : (u.createdAt instanceof Date ? u.createdAt.toISOString() : u.createdAt),
+    }));
+  }
+
   @Get('messages')
   getMessages(@Query('roomId') roomId?: string, @Query('limit') limit?: string) {
     const n = Math.min(Math.max(parseInt(limit || '100', 10) || 100, 1), 500);
@@ -69,6 +79,7 @@ export class ChatController {
     @Body('author') author?: string,
     @Body('content') content?: string,
     @Body('roomId') roomId?: string,
+    @Body('userId') userId?: string,
   ) {
     const authorStr = (author && String(author).trim()) || 'Anonymous';
     const contentStr = (content && String(content).trim()) || '';
@@ -76,14 +87,21 @@ export class ChatController {
       return { error: 'No file' };
     }
     const attachmentPath = `chat-uploads/${file.filename}`;
-    const msg = await this.chatService.create(authorStr, contentStr, {
-      path: attachmentPath,
-      name: file.originalname || file.filename,
-      mime: file.mimetype || '',
-    }, roomId || null);
+    const msg = await this.chatService.create(
+      authorStr,
+      contentStr,
+      {
+        path: attachmentPath,
+        name: file.originalname || file.filename,
+        mime: file.mimetype || '',
+      },
+      roomId || null,
+      userId || null,
+    );
     this.chatGateway.emitMessage(msg, roomId || null);
     return {
       id: msg.id,
+      userId: msg.userId,
       author: msg.author,
       content: msg.content,
       createdAt: msg.createdAt,

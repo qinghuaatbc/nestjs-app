@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chatroom DB Test</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --surface: #18181c;
+      --border: #2a2a30;
+      --text: #e4e4e7;
+      --muted: #71717a;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --green: #22c55e;
+      --red: #f87171;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .wrap { max-width: 900px; margin: 0 auto; }
+    h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 20px; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .home-link { margin-bottom: 16px; }
+    .home-link a { color: var(--muted); font-size: 13px; text-decoration: none; }
+    .home-link a:hover { color: var(--accent); }
+
+    .form-row { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+    .form-row label { min-width: 70px; font-size: 13px; color: var(--muted); }
+    input[type="text"] {
+      padding: 8px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn:hover { background: var(--accent-hover); }
+    .btn-ghost { background: var(--border); color: var(--text); }
+    .btn-ghost:hover { background: #3f3f46; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-sm { padding: 6px 10px; font-size: 12px; margin-left: 4px; }
+
+    .section-title { font-size: 14px; font-weight: 600; color: var(--muted); margin-bottom: 12px; }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .status.connected { background: rgba(34, 197, 94, 0.15); color: var(--green); }
+    .status.disconnected { background: rgba(248, 113, 113, 0.15); color: var(--red); }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+    .status.connected .status-dot { animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: 0.5; } }
+
+    .list-wrap { max-height: 200px; overflow-y: auto; }
+    .list-item {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .list-item:last-child { border-bottom: none; }
+    .list-item .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .table-wrap { overflow-x: auto; max-height: 280px; overflow-y: auto; }
+    .table-wrap table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .table-wrap th, .table-wrap td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    .table-wrap th { color: var(--muted); font-weight: 500; }
+    .table-wrap tr:hover { background: rgba(255,255,255,0.02); }
+    body.day-mode .table-wrap tr:hover { background: rgba(0,0,0,0.03); }
+    .event-list { max-height: 220px; overflow-y: auto; font-size: 13px; }
+    .event-item {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      font-family: ui-monospace, monospace;
+    }
+    .event-item:last-child { border-bottom: none; }
+    .event-time { color: var(--muted); font-size: 11px; margin-right: 8px; }
+    .event-payload { margin-top: 6px; color: var(--text); word-break: break-all; }
+    .event-payload pre { margin: 0; font-size: 12px; white-space: pre-wrap; }
+    .empty-msg { color: var(--muted); text-align: center; padding: 24px; font-size: 13px; }
+
+    body.day-mode { --bg: #f4f4f5; --surface: #fff; --border: #e4e4e7; --text: #18181b; --muted: #71717a; }
+    .theme-toggle { position: absolute; top: 24px; right: 24px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font-size: 13px; cursor: pointer; }
+    .theme-toggle:hover { border-color: var(--accent); }
+  </style>
+</head>
+<body class="day-mode">
+  <button type="button" class="theme-toggle" id="themeToggle" title="Toggle day/night mode">Day</button>
+  <div class="wrap">
+    <p class="home-link"><a href="/s/index.html">← Home</a></p>
+    <h1>Chatroom DB Test</h1>
+    <p style="font-size: 13px; color: var(--muted); margin-bottom: 16px;">REST: rooms & messages. WebSocket: join room, send/receive messages (Socket.IO).</p>
+
+    <div style="font-size: 12px; color: var(--muted); margin-bottom: 16px;">
+      <label style="margin-right: 6px;">Base URL:</label>
+      <input type="text" id="baseUrl" placeholder="http://localhost:3000" style="font-family: ui-monospace, monospace; padding: 6px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px; min-width: 260px;" />
+    </div>
+
+    <!-- REST: Rooms table -->
+    <div class="card">
+      <div class="section-title">REST — Rooms</div>
+      <div class="form-row">
+        <label>Name</label>
+        <input type="text" id="roomName" placeholder="Room name" style="min-width: 160px;" />
+        <button type="button" class="btn" id="btnAddRoom">Add Room</button>
+        <button type="button" class="btn btn-ghost" id="btnRefreshRooms">Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody id="roomTableBody"></tbody>
+        </table>
+      </div>
+      <div id="roomEmpty" class="empty-msg" style="display:none;">No rooms. Add one above or refresh.</div>
+    </div>
+
+    <!-- REST: Messages -->
+    <div class="card">
+      <div class="section-title">REST — Messages (by room)</div>
+      <div class="form-row">
+        <label>Room</label>
+        <select id="restRoomSelect" style="min-width: 200px; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text);">
+          <option value="">— Select room —</option>
+        </select>
+        <button type="button" class="btn btn-ghost" id="btnLoadMessages">Load messages</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th id="messageTableRoomHeader">Room</th>
+              <th>Author</th>
+              <th>User</th>
+              <th>Content</th>
+              <th>Attachment</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody id="messageTableBody"></tbody>
+        </table>
+      </div>
+      <div id="messageEmpty" class="empty-msg" style="display:none;">Select a room or "All rooms" and click Load messages.</div>
+    </div>
+
+    <!-- WebSocket -->
+    <div class="card">
+      <div class="section-title">WebSocket — Chat</div>
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
+        <div id="wsStatus" class="status disconnected">
+          <span class="status-dot"></span>
+          <span id="wsStatusText">Disconnected</span>
+        </div>
+        <button type="button" class="btn btn-ghost" id="btnWsDisconnect" disabled>Disconnect</button>
+        <button type="button" class="btn" id="btnWsConnect">Connect</button>
+      </div>
+      <div class="form-row">
+        <label>Room</label>
+        <select id="wsRoomSelect" style="min-width: 200px; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text);">
+          <option value="">— Select room —</option>
+        </select>
+        <button type="button" class="btn btn-ghost" id="btnJoinRoom">Join room</button>
+      </div>
+      <div class="form-row">
+        <label>Author</label>
+        <input type="text" id="wsAuthor" placeholder="Your name" style="min-width: 120px;" />
+        <label>Message</label>
+        <input type="text" id="wsContent" placeholder="Message text" style="flex: 1; min-width: 160px;" />
+        <button type="button" class="btn" id="btnSendMessage">Send</button>
+      </div>
+      <div class="section-title" style="margin-top: 12px;">Live messages</div>
+      <div id="wsEvents" class="event-list"></div>
+    </div>
+  </div>
+  <script>
+    (function() {
+      var baseUrlEl = document.getElementById('baseUrl');
+      if (baseUrlEl) baseUrlEl.value = window.location.origin;
+
+      function baseUrl() {
+        var u = (baseUrlEl && baseUrlEl.value) ? baseUrlEl.value.trim() : '';
+        return u || window.location.origin;
+      }
+
+      var roomTableBody = document.getElementById('roomTableBody');
+      var roomEmptyEl = document.getElementById('roomEmpty');
+      var restRoomSelect = document.getElementById('restRoomSelect');
+      var wsRoomSelect = document.getElementById('wsRoomSelect');
+
+      function refreshRoomOptions() {
+        var opts = restRoomSelect ? restRoomSelect.options : [];
+        var wsOpts = wsRoomSelect ? wsRoomSelect.options : [];
+        while (opts.length > 1) opts.remove(1);
+        while (wsOpts.length > 1) wsOpts.remove(1);
+        if (restRoomSelect) restRoomSelect.appendChild(new Option('— All rooms —', 'all'));
+        var rooms = window._chatroomTestRooms || [];
+        rooms.forEach(function(r) {
+          if (restRoomSelect) restRoomSelect.appendChild(new Option(r.name + ' (' + r.id + ')', r.id));
+          if (wsRoomSelect) wsRoomSelect.appendChild(new Option(r.name + ' (' + r.id + ')', r.id));
+        });
+      }
+
+      function fetchRooms() {
+        var url = baseUrl() + '/api/chat/rooms';
+        return fetch(url).then(function(r) {
+          if (!r.ok) throw new Error(r.status + ' ' + r.statusText);
+          return r.json();
+        }).then(function(data) {
+          window._chatroomTestRooms = Array.isArray(data) ? data : [];
+          if (roomTableBody) {
+            roomTableBody.innerHTML = '';
+            if (window._chatroomTestRooms.length === 0) {
+              if (roomEmptyEl) { roomEmptyEl.style.display = 'block'; roomEmptyEl.textContent = 'No rooms. Add one above or refresh.'; }
+              refreshRoomOptions();
+              return;
+            }
+            if (roomEmptyEl) roomEmptyEl.style.display = 'none';
+            window._chatroomTestRooms.forEach(function(r) {
+              var tr = document.createElement('tr');
+              tr.innerHTML = '<td>' + escapeHtml(r.id) + '</td><td>' + escapeHtml(r.name) + '</td><td>' + escapeHtml(r.createdAt || '') + '</td>';
+              roomTableBody.appendChild(tr);
+            });
+          }
+          refreshRoomOptions();
+        }).catch(function(e) {
+          if (roomTableBody) roomTableBody.innerHTML = '';
+          if (roomEmptyEl) { roomEmptyEl.style.display = 'block'; roomEmptyEl.textContent = 'Error: ' + (e.message || e); }
+        });
+      }
+
+      function escapeHtml(s) {
+        if (s == null) return '';
+        var div = document.createElement('div');
+        div.textContent = String(s);
+        return div.innerHTML;
+      }
+
+      document.getElementById('btnRefreshRooms').addEventListener('click', fetchRooms);
+      document.getElementById('btnAddRoom').addEventListener('click', function() {
+        var nameEl = document.getElementById('roomName');
+        var name = (nameEl && nameEl.value) ? nameEl.value.trim() : '';
+        if (!name) { alert('Enter room name'); return; }
+        fetch(baseUrl() + '/api/chat/rooms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name })
+        }).then(function(r) {
+          if (!r.ok) return r.text().then(function(t) { throw new Error(t || r.status); });
+          return r.json();
+        }).then(function() {
+          if (nameEl) nameEl.value = '';
+          fetchRooms();
+        }).catch(function(e) { alert('Error: ' + (e.message || e)); });
+      });
+
+      document.getElementById('btnLoadMessages').addEventListener('click', function() {
+        var roomVal = restRoomSelect ? restRoomSelect.value : '';
+        var tbody = document.getElementById('messageTableBody');
+        var emptyEl = document.getElementById('messageEmpty');
+        var roomHeader = document.getElementById('messageTableRoomHeader');
+        if (roomVal === '') { if (emptyEl) emptyEl.style.display = 'block'; if (tbody) tbody.innerHTML = ''; return; }
+        var url = baseUrl() + '/api/chat/messages?limit=500';
+        if (roomVal !== 'all') url += '&roomId=' + encodeURIComponent(roomVal);
+        fetch(url)
+          .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+          .then(function(data) {
+            var arr = Array.isArray(data) ? data : [];
+            if (emptyEl) emptyEl.style.display = arr.length ? 'none' : 'block';
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            var roomsById = {};
+            (window._chatroomTestRooms || []).forEach(function(r) { roomsById[r.id] = r.name; });
+            var showRoom = roomVal === 'all';
+            arr.forEach(function(m) {
+              var tr = document.createElement('tr');
+              var roomCell = '<td>' + (showRoom ? escapeHtml(roomsById[m.roomId] || m.roomId || '—') : '') + '</td>';
+              var userCell = '<td>' + (m.userId ? escapeHtml(m.userId) : '—') + '</td>';
+              var att = (m.attachmentPath || m.attachmentName) ? (m.attachmentName || m.attachmentPath || '') : '—';
+              tr.innerHTML = roomCell + '<td>' + escapeHtml(m.author || '') + '</td>' + userCell + '<td>' + escapeHtml(m.content || '') + '</td><td>' + escapeHtml(att) + '</td><td>' + escapeHtml(m.createdAt || '') + '</td>';
+              tbody.appendChild(tr);
+            });
+          })
+          .catch(function(e) {
+            if (emptyEl) { emptyEl.style.display = 'block'; emptyEl.textContent = 'Error: ' + (e.message || e); }
+            if (tbody) tbody.innerHTML = '';
+          });
+      });
+
+      fetchRooms();
+    })();
+
+    (function() {
+      var wsStatus = document.getElementById('wsStatus');
+      var wsStatusText = document.getElementById('wsStatusText');
+      var btnConnect = document.getElementById('btnWsConnect');
+      var btnDisconnect = document.getElementById('btnWsDisconnect');
+      var btnJoin = document.getElementById('btnJoinRoom');
+      var btnSend = document.getElementById('btnSendMessage');
+      var wsAuthor = document.getElementById('wsAuthor');
+      var wsContent = document.getElementById('wsContent');
+      var wsRoomSelect = document.getElementById('wsRoomSelect');
+      var wsEvents = document.getElementById('wsEvents');
+      var baseUrlEl = document.getElementById('baseUrl');
+      function baseUrl() {
+        var u = (baseUrlEl && baseUrlEl.value) ? baseUrlEl.value.trim() : '';
+        return u || window.location.origin;
+      }
+      var socket = null;
+      var MAX_EVENTS = 50;
+
+      function addEvent(payload) {
+        var item = document.createElement('div');
+        item.className = 'event-item';
+        function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+        item.innerHTML = '<span class="event-time">' + new Date().toLocaleTimeString() + '</span> ' +
+          '<strong>' + esc(payload.author) + '</strong>: ' + esc(payload.content) +
+          (payload.attachmentName ? ' [attachment: ' + esc(payload.attachmentName) + ']' : '') +
+          '<div class="event-payload"><pre>' + esc(JSON.stringify(payload, null, 2)) + '</pre></div>';
+        wsEvents.insertBefore(item, wsEvents.firstChild);
+        while (wsEvents.children.length > MAX_EVENTS) wsEvents.removeChild(wsEvents.lastChild);
+      }
+
+      function setConnected(ok) {
+        wsStatus.className = 'status ' + (ok ? 'connected' : 'disconnected');
+        wsStatusText.textContent = ok ? 'Connected' : 'Disconnected';
+        if (btnConnect) btnConnect.disabled = !!ok;
+        if (btnDisconnect) btnDisconnect.disabled = !ok;
+      }
+
+      btnConnect.addEventListener('click', function() {
+        if (socket) return;
+        var url = baseUrl();
+        socket = io(url, { path: '/socket.io', transports: ['websocket', 'polling'] });
+        socket.on('connect', function() { setConnected(true); });
+        socket.on('disconnect', function() { setConnected(false); });
+        socket.on('chat:message', addEvent);
+      });
+
+      btnDisconnect.addEventListener('click', function() {
+        if (socket) { socket.disconnect(); socket = null; }
+        setConnected(false);
+      });
+
+      btnJoin.addEventListener('click', function() {
+        if (!socket || !socket.connected) { alert('Connect first'); return; }
+        var roomId = wsRoomSelect && wsRoomSelect.value ? wsRoomSelect.value : '';
+        socket.emit('chat:join', { roomId: roomId || null });
+      });
+
+      btnSend.addEventListener('click', function() {
+        if (!socket || !socket.connected) { alert('Connect first'); return; }
+        var author = (wsAuthor && wsAuthor.value) ? wsAuthor.value.trim() : 'Anonymous';
+        var content = (wsContent && wsContent.value) ? wsContent.value.trim() : '';
+        if (!content) { alert('Enter message'); return; }
+        var roomId = wsRoomSelect && wsRoomSelect.value ? wsRoomSelect.value : null;
+        socket.emit('chat:message', { author: author, content: content, roomId: roomId || null });
+        if (wsContent) wsContent.value = '';
+      });
+
+      setConnected(false);
+    })();
+
+    (function() {
+      var KEY = 'appTheme';
+      var btn = document.getElementById('themeToggle');
+      if (!btn) return;
+      function isDay() { return document.body.classList.contains('day-mode'); }
+      function setDay(on) {
+        if (on) { document.body.classList.add('day-mode'); btn.textContent = 'Day'; try { localStorage.setItem(KEY, 'day'); } catch(e) {} }
+        else { document.body.classList.remove('day-mode'); btn.textContent = 'Night'; try { localStorage.setItem(KEY, 'night'); } catch(e) {} }
+      }
+      if (localStorage.getItem(KEY) !== 'night') setDay(true);
+      btn.addEventListener('click', function() { setDay(!isDay()); });
+    })();
+  </script>
+</body>
+</html>

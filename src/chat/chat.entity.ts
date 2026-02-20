@@ -14,6 +14,9 @@ export class ChatMessage {
   @Column({ type: 'uuid', nullable: true })
   roomId: string | null;
 
+  @Column({ type: 'uuid', nullable: true })
+  userId: string | null;
+
   @Column({ type: 'varchar', length: 128, default: '' })
   author: string;
 

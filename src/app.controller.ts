@@ -42,4 +42,8 @@ export class AppController {
   @Get('chat.html')
   @Redirect('/s/chat.html', 302)
   redirectChat() {}
+
+  @Get('chatroom-test.html')
+  @Redirect('/s/chatroom-test.html', 302)
+  redirectChatroomTest() {}
 }
