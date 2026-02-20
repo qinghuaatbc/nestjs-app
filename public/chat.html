@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --surface: #18181c;
+      --border: #2a2a30;
+      --text: #e4e4e7;
+      --muted: #71717a;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --green: #22c55e;
+      --red: #f87171;
+    }
+    body.day-mode {
+      --bg: #f4f4f5;
+      --surface: #fff;
+      --border: #e4e4e7;
+      --text: #18181b;
+      --muted: #71717a;
+    }
+    body.day-mode .chat-item.callee { background: #e4e4e7; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+    }
+    .wrap {
+      max-width: 640px;
+      margin: 0 auto;
+      width: 100%;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .chat-header { flex-shrink: 0; }
+    h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 16px; }
+    .home-link { margin-bottom: 16px; }
+    .home-link a { color: var(--muted); font-size: 13px; text-decoration: none; }
+    .home-link a:hover { color: var(--accent); }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .status.connected { color: var(--green); }
+    .status.disconnected { color: var(--red); }
+    .room-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .room-row label { font-size: 13px; color: var(--muted); }
+    .room-row select {
+      padding: 8px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+      min-width: 160px;
+    }
+    .room-row .add-room { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .room-row .add-room input {
+      padding: 8px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+      width: 140px;
+    }
+    .room-row .add-room .btn { padding: 8px 14px; font-size: 13px; }
+    .chat-list {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      margin: 12px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .chat-row { display: flex; }
+    .chat-row.caller { justify-content: flex-end; }
+    .chat-row.callee { justify-content: flex-start; }
+    .chat-item {
+      max-width: 80%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-size: 14px;
+    }
+    .chat-item.caller {
+      background: rgba(59, 130, 246, 0.25);
+      border: 1px solid var(--accent);
+      text-align: right;
+    }
+    .chat-item.callee {
+      background: var(--bg);
+      border: 1px solid var(--border);
+    }
+    .chat-item .author { font-weight: 500; margin-right: 8px; }
+    .chat-item.caller .author { color: var(--accent); }
+    .chat-item.callee .author { color: var(--muted); }
+    .chat-item .time { color: var(--muted); font-size: 11px; }
+    .chat-item .content { margin-top: 4px; word-break: break-word; }
+    .chat-item .attachment { margin-top: 8px; }
+    .chat-item .chat-img { max-width: 100%; max-height: 280px; border-radius: 8px; display: block; }
+    .chat-item .attachment a { color: var(--accent); font-size: 13px; }
+    .chat-form {
+      flex-shrink: 0;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .chat-form input[type="text"] {
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .chat-form input[name="author"] { width: 120px; }
+    .chat-form input[name="content"] { flex: 1; min-width: 160px; }
+    .chat-form .file-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .chat-form input[type="file"] { font-size: 12px; color: var(--muted); max-width: 180px; }
+    .chat-form .file-choice { font-size: 12px; color: var(--muted); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chat-form .btn-cancel { background: var(--surface); border: 1px solid var(--border); color: var(--muted); padding: 8px 12px; font-size: 12px; }
+    .chat-form .btn-cancel:hover { border-color: var(--red); color: var(--red); }
+    .chat-form .btn {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+    }
+    .chat-form .btn:hover { background: var(--accent-hover); }
+    .register-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .register-box input { padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; width: 140px; }
+    .register-box .btn { padding: 8px 14px; font-size: 13px; }
+    .register-msg { font-size: 13px; }
+    .register-msg.ok { color: var(--green); }
+    .register-msg.err { color: var(--red); }
+    .user-badge { font-size: 12px; color: var(--muted); margin-left: auto; }
+    .user-badge span { color: var(--accent); }
+    .user-badge .logout-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; padding: 0 6px; text-decoration: underline; }
+    .user-badge .logout-btn:hover { color: var(--red); }
+    .theme-toggle {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+  </style>
+</head>
+<body class="day-mode">
+  <button type="button" class="theme-toggle" id="themeToggle" title="Toggle day/night mode">Day</button>
+  <div class="wrap">
+    <div class="chat-header">
+      <div class="home-link"><a href="/s/index.html">← Home</a></div>
+      <h1>Chat</h1>
+      <div id="registerBox" class="register-box">
+        <input type="text" id="regUsername" placeholder="Username (2–64 chars)" maxlength="64" />
+        <button type="button" class="btn" id="btnRegister">Register</button>
+        <span id="registerMsg" class="register-msg"></span>
+        <span id="userBadge" class="user-badge" style="display:none;">Logged in as <span id="currentUser"></span> <button type="button" class="logout-btn" id="btnLogout">Logout</button></span>
+      </div>
+      <div id="status" class="status disconnected">Disconnected</div>
+      <div class="room-row">
+        <label for="roomSelect">Room</label>
+        <select id="roomSelect" title="Select room">
+          <option value="">Loading…</option>
+        </select>
+        <div class="add-room">
+          <input type="text" id="newRoomName" placeholder="New room name" maxlength="128" />
+          <button type="button" class="btn" id="btnAddRoom">Add room</button>
+        </div>
+      </div>
+    </div>
+    <div id="chatList" class="chat-list"></div>
+    <form id="chatForm" class="chat-form">
+      <input type="text" name="author" id="author" placeholder="Your name" maxlength="128" />
+      <input type="text" name="content" id="content" placeholder="Message..." />
+      <div class="file-row">
+        <input type="file" id="fileInput" name="file" accept="image/*,.pdf,application/pdf,.doc,.docx,.txt" title="Attach file or image" />
+        <span id="fileChoice" class="file-choice" style="display:none;"></span>
+        <button type="button" class="btn btn-cancel" id="btnCancelFile" style="display:none;">Cancel</button>
+      </div>
+      <button type="submit" class="btn">Send</button>
+    </form>
+  </div>
+  <script>
+    (function() {
+      var origin = window.location.origin;
+      var chatList = document.getElementById('chatList');
+      var statusEl = document.getElementById('status');
+      var form = document.getElementById('chatForm');
+      var authorInput = document.getElementById('author');
+      var contentInput = document.getElementById('content');
+
+      function escapeHtml(s) {
+        if (s == null) return '';
+        var div = document.createElement('div');
+        div.textContent = s;
+        return div.innerHTML;
+      }
+      function formatTime(d) {
+        var date = typeof d === 'string' ? new Date(d) : d;
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+      var currentAuthor = (authorInput.value || '').trim() || '';
+      var regUsername = document.getElementById('regUsername');
+      var btnRegister = document.getElementById('btnRegister');
+      var registerMsg = document.getElementById('registerMsg');
+      var userBadge = document.getElementById('userBadge');
+      var currentUserEl = document.getElementById('currentUser');
+      var btnLogout = document.getElementById('btnLogout');
+      var STORAGE_KEY = 'chatUsername';
+
+      function setStoredUser(name) {
+        if (name) {
+          try { localStorage.setItem(STORAGE_KEY, name); } catch (e) {}
+        } else {
+          try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+        }
+      }
+      function getStoredUser() {
+        try { return (localStorage.getItem(STORAGE_KEY) || '').trim(); } catch (e) { return ''; }
+      }
+      function showUserBadge(name) {
+        currentAuthor = name;
+        authorInput.value = name;
+        currentUserEl.textContent = name;
+        userBadge.style.display = 'inline';
+        registerMsg.textContent = '';
+        registerMsg.className = 'register-msg';
+      }
+      function hideUserBadge() {
+        setStoredUser('');
+        currentAuthor = '';
+        authorInput.value = '';
+        userBadge.style.display = 'none';
+        registerMsg.textContent = '';
+      }
+      if (getStoredUser()) showUserBadge(getStoredUser());
+
+      var THEME_KEY = 'appTheme';
+      var themeToggle = document.getElementById('themeToggle');
+      function isDayMode() { return document.body.classList.contains('day-mode'); }
+      function setDayMode(on) {
+        if (on) {
+          document.body.classList.add('day-mode');
+          themeToggle.textContent = 'Day';
+          try { localStorage.setItem(THEME_KEY, 'day'); } catch (e) {}
+        } else {
+          document.body.classList.remove('day-mode');
+          themeToggle.textContent = 'Night';
+          try { localStorage.setItem(THEME_KEY, 'night'); } catch (e) {}
+        }
+      }
+      if (typeof localStorage !== 'undefined' && localStorage.getItem(THEME_KEY) !== 'night') setDayMode(true);
+      themeToggle.addEventListener('click', function() { setDayMode(!isDayMode()); });
+
+      btnRegister.addEventListener('click', function() {
+        var name = (regUsername.value || '').trim();
+        registerMsg.textContent = '';
+        registerMsg.className = 'register-msg';
+        if (!name || name.length < 2) { registerMsg.textContent = 'Username must be at least 2 characters'; registerMsg.className = 'register-msg err'; return; }
+        btnRegister.disabled = true;
+        fetch(origin + '/api/chat/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: name })
+        }).then(function(r) {
+          if (r.ok) return r.json();
+          return r.json().then(function(err) { throw new Error(err.message || 'Registration failed'); });
+        }).then(function(data) {
+          setStoredUser(data.username);
+          showUserBadge(data.username);
+          regUsername.value = '';
+        }).catch(function(e) {
+          registerMsg.textContent = e.message || 'Registration failed';
+          registerMsg.className = 'register-msg err';
+        }).finally(function() { btnRegister.disabled = false; });
+      });
+      btnLogout.addEventListener('click', hideUserBadge);
+
+      function getAuthor() {
+        return (authorInput.value || '').trim() || 'Anonymous';
+      }
+      function isCaller(msg) {
+        var author = (msg.author || '').trim();
+        var me = currentAuthor || getAuthor();
+        return author && me && author.toLowerCase() === me.toLowerCase();
+      }
+      function isImageMime(mime) {
+        return (mime && (mime.indexOf('image/') === 0));
+      }
+      function attachmentUrl(path) {
+        if (!path) return '';
+        return origin + '/s/' + path;
+      }
+      function appendMessage(msg) {
+        var isMe = isCaller(msg);
+        var row = document.createElement('div');
+        row.className = 'chat-row ' + (isMe ? 'caller' : 'callee');
+        var item = document.createElement('div');
+        item.className = 'chat-item ' + (isMe ? 'caller' : 'callee');
+        var contentHtml = '<div class="content">' + escapeHtml(msg.content || '') + '</div>';
+        if (msg.attachmentPath) {
+          var url = attachmentUrl(msg.attachmentPath);
+          var name = escapeHtml(msg.attachmentName || 'file');
+          var isPdf = msg.attachmentMime === 'application/pdf';
+          if (isImageMime(msg.attachmentMime)) {
+            contentHtml += '<div class="attachment"><a href="' + escapeHtml(url) + '" target="_blank" rel="noopener"><img src="' + escapeHtml(url) + '" alt="' + name + '" class="chat-img" /></a></div>';
+          } else if (isPdf) {
+            contentHtml += '<div class="attachment"><a href="' + escapeHtml(url) + '" target="_blank" rel="noopener">📄 ' + name + '</a></div>';
+          } else {
+            contentHtml += '<div class="attachment"><a href="' + escapeHtml(url) + '" target="_blank" rel="noopener" download="' + name + '">📎 ' + name + '</a></div>';
+          }
+        }
+        item.innerHTML =
+          '<span class="author">' + escapeHtml(msg.author) + '</span>' +
+          '<span class="time">' + formatTime(msg.createdAt) + '</span>' +
+          contentHtml;
+        row.appendChild(item);
+        chatList.appendChild(row);
+        chatList.scrollTop = chatList.scrollHeight;
+      }
+
+      var roomSelect = document.getElementById('roomSelect');
+      var newRoomName = document.getElementById('newRoomName');
+      var btnAddRoom = document.getElementById('btnAddRoom');
+      var currentRoomId = '';
+
+      function loadRooms() {
+        fetch(origin + '/api/chat/rooms')
+          .then(function(r) { return r.json(); })
+          .then(function(rooms) {
+            roomSelect.innerHTML = '';
+            (rooms || []).forEach(function(r) {
+              var opt = document.createElement('option');
+              opt.value = r.id;
+              opt.textContent = r.name;
+              roomSelect.appendChild(opt);
+            });
+            if (roomSelect.options.length) {
+              currentRoomId = roomSelect.value;
+              loadHistory(currentRoomId);
+              if (socket.connected) socket.emit('chat:join', { roomId: currentRoomId });
+            }
+          })
+          .catch(function() { roomSelect.innerHTML = '<option value="">Failed to load rooms</option>'; });
+      }
+
+      function loadHistory(roomId) {
+        currentAuthor = getAuthor();
+        var url = origin + '/api/chat/messages?limit=100';
+        if (roomId) url += '&roomId=' + encodeURIComponent(roomId);
+        fetch(url)
+          .then(function(r) { return r.json(); })
+          .then(function(arr) {
+            chatList.innerHTML = '';
+            (arr || []).reverse().forEach(appendMessage);
+          })
+          .catch(function() { chatList.innerHTML = '<div class="chat-row"><div class="chat-item callee">Failed to load history.</div></div>'; });
+      }
+
+      loadRooms();
+
+      var socket = io(origin, { path: '/socket.io/', transports: ['websocket', 'polling'] });
+      socket.on('connect', function() {
+        statusEl.textContent = 'Connected';
+        statusEl.className = 'status connected';
+        if (currentRoomId) socket.emit('chat:join', { roomId: currentRoomId });
+      });
+      socket.on('disconnect', function() { statusEl.textContent = 'Disconnected'; statusEl.className = 'status disconnected'; });
+      socket.on('chat:message', appendMessage);
+
+      if (roomSelect) {
+        roomSelect.addEventListener('change', function() {
+          currentRoomId = roomSelect.value || '';
+          loadHistory(currentRoomId);
+          socket.emit('chat:join', { roomId: currentRoomId || null });
+        });
+      }
+      if (btnAddRoom && newRoomName) {
+        btnAddRoom.addEventListener('click', function() {
+          var name = (newRoomName.value || '').trim();
+          if (!name) return;
+          btnAddRoom.disabled = true;
+          fetch(origin + '/api/chat/rooms', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name })
+          }).then(function(r) {
+            if (r.ok) return r.json();
+            return r.json().then(function(err) { throw new Error(err.message || err.error || 'Failed'); });
+          }).then(function(room) {
+            newRoomName.value = '';
+            loadRooms();
+            roomSelect.value = room.id;
+            currentRoomId = room.id;
+            loadHistory(currentRoomId);
+            socket.emit('chat:join', { roomId: currentRoomId });
+          }).catch(function(e) {
+            alert(e.message || 'Could not add room');
+          }).finally(function() { btnAddRoom.disabled = false; });
+        });
+      }
+
+      var fileInput = document.getElementById('fileInput');
+      var fileChoice = document.getElementById('fileChoice');
+      var btnCancelFile = document.getElementById('btnCancelFile');
+      function updateFileChoice() {
+        var hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
+        if (hasFile) {
+          fileChoice.textContent = fileInput.files[0].name;
+          fileChoice.style.display = 'inline';
+          btnCancelFile.style.display = 'inline-block';
+        } else {
+          fileChoice.textContent = '';
+          fileChoice.style.display = 'none';
+          btnCancelFile.style.display = 'none';
+        }
+      }
+      if (fileInput) fileInput.addEventListener('change', updateFileChoice);
+      if (btnCancelFile) {
+        btnCancelFile.addEventListener('click', function() {
+          fileInput.value = '';
+          updateFileChoice();
+        });
+      }
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        currentAuthor = getAuthor();
+        var content = (contentInput.value || '').trim();
+        var hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
+        if (hasFile) {
+          var fd = new FormData();
+          fd.append('file', fileInput.files[0]);
+          fd.append('author', currentAuthor);
+          fd.append('content', content);
+          if (currentRoomId) fd.append('roomId', currentRoomId);
+          fetch(origin + '/api/chat/upload', { method: 'POST', body: fd })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+              if (data.error) return;
+              fileInput.value = '';
+              contentInput.value = '';
+              updateFileChoice();
+            })
+            .catch(function() {});
+          return;
+        }
+        if (!content) return;
+        socket.emit('chat:message', { author: currentAuthor, content: content, roomId: currentRoomId || null });
+        contentInput.value = '';
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -19,11 +19,11 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // client disconnected
   }
 
-  emitPersonEvent(action: 'list' | 'created' | 'updated' | 'deleted', payload: unknown) {
-    this.server?.emit('person', { action, payload });
-  }
-
   emitDeviceEvent(action: 'list' | 'created' | 'updated' | 'deleted', payload: unknown) {
     this.server?.emit('device', { action, payload });
+  }
+
+  emitCustomerEvent(action: 'list' | 'created' | 'updated' | 'deleted', payload: unknown) {
+    this.server?.emit('customer', { action, payload });
   }
 }

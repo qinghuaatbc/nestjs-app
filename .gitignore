@@ -35,3 +35,7 @@ coverage/
 #file
 files/books/
 backups/files/books/*.pdf
+
+# Chat uploads (keep folder via .gitkeep)
+public/chat-uploads/*
+!public/chat-uploads/.gitkeep

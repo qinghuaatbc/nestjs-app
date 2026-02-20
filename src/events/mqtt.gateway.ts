@@ -1,8 +1,8 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import * as mqtt from 'mqtt';
 
-const PERSON_TOPIC = 'person';
 const DEVICE_TOPIC = 'device';
+const CUSTOMER_TOPIC = 'customer';
 
 @Injectable()
 export class MqttGateway implements OnModuleInit, OnModuleDestroy {
@@ -31,15 +31,6 @@ export class MqttGateway implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  publishPersonEvent(
-    action: 'created' | 'updated' | 'deleted',
-    payload: unknown,
-  ): void {
-    if (!this.client?.connected) return;
-    const message = JSON.stringify({ action, payload });
-    this.client.publish(PERSON_TOPIC, message, { qos: 0 });
-  }
-
   publishDeviceEvent(
     action: 'created' | 'updated' | 'deleted',
     payload: unknown,
@@ -47,5 +38,14 @@ export class MqttGateway implements OnModuleInit, OnModuleDestroy {
     if (!this.client?.connected) return;
     const message = JSON.stringify({ action, payload });
     this.client.publish(DEVICE_TOPIC, message, { qos: 0 });
+  }
+
+  publishCustomerEvent(
+    action: 'created' | 'updated' | 'deleted',
+    payload: unknown,
+  ): void {
+    if (!this.client?.connected) return;
+    const message = JSON.stringify({ action, payload });
+    this.client.publish(CUSTOMER_TOPIC, message, { qos: 0 });
   }
 }

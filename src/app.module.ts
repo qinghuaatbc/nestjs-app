@@ -5,11 +5,11 @@ import { join } from 'path';
 import { ApiController } from './api.controller';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ChatModule } from './chat/chat.module';
+import { CustomerModule } from './customer/customer.module';
 import { DeviceModule } from './device/device.module';
 import { EventsModule } from './events/events.module';
 import { FilesModule } from './files/files.module';
-import { PersonModule } from './person/person.module';
-
 @Module({
   imports: [
     EventsModule,
@@ -23,8 +23,9 @@ import { PersonModule } from './person/person.module';
       autoLoadEntities: true,
       synchronize: true,
     }),
-    PersonModule,
     DeviceModule,
+    CustomerModule,
+    ChatModule,
     FilesModule,
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'),

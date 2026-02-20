@@ -114,10 +114,14 @@
     .list-item .info { flex: 1; }
     .list-item .actions { white-space: nowrap; }
     .edit-hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+    body.day-mode { --bg: #f4f4f5; --surface: #fff; --border: #e4e4e7; --text: #18181b; --muted: #71717a; }
+    .theme-toggle { position: absolute; top: 24px; right: 24px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font-size: 13px; cursor: pointer; }
+    .theme-toggle:hover { border-color: var(--accent); }
   </style>
   <!-- hi -->
 </head>
-<body>
+<body class="day-mode">
+  <button type="button" class="theme-toggle" id="themeToggle" title="Toggle day/night mode">Day</button>
   <div class="wrap">
     <div class="home-link"><a href="/s/index.html">← Home</a></div>
     <h1>WebSocket Test</h1>
@@ -132,28 +136,6 @@
     <div style="font-size: 12px; color: var(--muted); margin-bottom: 16px;">
       <label style="margin-right: 6px;">URL:</label>
       <input type="text" id="wsUrl" placeholder="http://localhost:3000" style="font-family: ui-monospace, monospace; padding: 6px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px; min-width: 260px;" />
-    </div>
-
-    <!-- Person: Add / Edit / Delete -->
-    <div class="card">
-      <div class="section-title">Person — Add / Edit / Delete</div>
-      <form id="personForm">
-        <input type="hidden" id="personId" value="" />
-        <div class="form-row">
-          <label>Name</label>
-          <input type="text" id="personName" required placeholder="Name" />
-          <label>Age</label>
-          <input type="number" id="personAge" value="0" min="0" />
-          <label>Hobby</label>
-          <input type="text" id="personHobby" placeholder="Hobby" />
-        </div>
-        <div class="form-row">
-          <button type="submit" class="btn" id="personSubmit">Add Person</button>
-          <button type="button" class="btn btn-ghost" id="personCancel" style="display:none;">Cancel</button>
-        </div>
-      </form>
-      <div id="personEditHint" class="edit-hint" style="display:none;">Editing: <span id="personEditId"></span></div>
-      <div class="list-wrap" id="personList"></div>
     </div>
 
     <!-- Device: Add / Edit / Delete -->
@@ -180,13 +162,41 @@
       <div class="list-wrap" id="deviceList"></div>
     </div>
 
+    <!-- Customer: Add / Edit / Delete -->
     <div class="card">
-      <div class="section-title">Person events (live)</div>
-      <div id="personEvents" class="event-list"></div>
+      <div class="section-title">Customer — Add / Edit / Delete</div>
+      <form id="customerForm">
+        <input type="hidden" id="customerId" value="" />
+        <div class="form-row">
+          <label>Name</label>
+          <input type="text" id="customerName" required placeholder="Name" />
+          <label>Address</label>
+          <input type="text" id="customerAddress" placeholder="Address" />
+          <label>City</label>
+          <input type="text" id="customerCity" placeholder="City" />
+          <label>Panel</label>
+          <input type="text" id="customerPanel" placeholder="Panel" />
+        </div>
+        <div class="form-row">
+          <label>Zones (JSON)</label>
+          <input type="text" id="customerZonelist" placeholder='[{"zoneNumber":"1","zoneName":"Zone 1"}]' style="flex:1;min-width:180px;" />
+        </div>
+        <div class="form-row">
+          <button type="submit" class="btn" id="customerSubmit">Add Customer</button>
+          <button type="button" class="btn btn-ghost" id="customerCancel" style="display:none;">Cancel</button>
+        </div>
+      </form>
+      <div id="customerEditHint" class="edit-hint" style="display:none;">Editing: <span id="customerEditId"></span></div>
+      <div class="list-wrap" id="customerList"></div>
     </div>
+
     <div class="card">
       <div class="section-title">Device events (live)</div>
       <div id="deviceEvents" class="event-list"></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Customer events (live)</div>
+      <div id="customerEvents" class="event-list"></div>
     </div>
   </div>
   <script>
@@ -195,8 +205,8 @@
       var origin = window.location.origin;
       var wsUrlInput = document.getElementById('wsUrl');
       if (wsUrlInput) wsUrlInput.value = origin;
-      var personEl = document.getElementById('personEvents');
       var deviceEl = document.getElementById('deviceEvents');
+      var customerEl = document.getElementById('customerEvents');
       var statusEl = document.getElementById('status');
       var statusText = document.getElementById('statusText');
 
@@ -225,76 +235,6 @@
         if (btnDisconnect) btnDisconnect.disabled = !ok;
         if (wsUrlInput) wsUrlInput.disabled = !!ok;
       }
-
-      // --- Person ---
-      var personForm = document.getElementById('personForm');
-      var personId = document.getElementById('personId');
-      var personName = document.getElementById('personName');
-      var personAge = document.getElementById('personAge');
-      var personHobby = document.getElementById('personHobby');
-      var personSubmit = document.getElementById('personSubmit');
-      var personCancel = document.getElementById('personCancel');
-      var personEditHint = document.getElementById('personEditHint');
-      var personEditId = document.getElementById('personEditId');
-      var personList = document.getElementById('personList');
-
-      function loadPersons() {
-        fetch(origin + '/api/persons').then(function(r) { return r.json(); }).then(function(arr) {
-          personList.innerHTML = '';
-          arr.forEach(function(p) {
-            var row = document.createElement('div');
-            row.className = 'list-item';
-            row.innerHTML =
-              '<div class="info">' + escapeHtml(p.name) + ', ' + p.age + ', ' + escapeHtml(p.hobby || '') + '</div>' +
-              '<div class="actions">' +
-              '<button type="button" class="btn btn-ghost btn-sm" data-edit="' + p.id + '">Edit</button>' +
-              '<button type="button" class="btn btn-danger btn-sm" data-delete="' + p.id + '">Delete</button>' +
-              '</div>';
-            personList.appendChild(row);
-          });
-          personList.querySelectorAll('[data-edit]').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-              var id = btn.getAttribute('data-edit');
-              personId.value = id;
-              personName.value = (arr.find(function(x) { return x.id === id; }) || {}).name || '';
-              personAge.value = (arr.find(function(x) { return x.id === id; }) || {}).age ?? 0;
-              personHobby.value = (arr.find(function(x) { return x.id === id; }) || {}).hobby || '';
-              personSubmit.textContent = 'Save';
-              personCancel.style.display = 'inline-block';
-              personEditHint.style.display = 'block';
-              personEditId.textContent = id;
-            });
-          });
-          personList.querySelectorAll('[data-delete]').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-              var id = btn.getAttribute('data-delete');
-              if (!confirm('Delete this person?')) return;
-              fetch(origin + '/api/persons/' + id, { method: 'DELETE' })
-                .then(function(r) { if (r.ok) loadPersons(); });
-            });
-          });
-        }).catch(function() { personList.innerHTML = '<div class="list-item">Failed to load</div>'; });
-      }
-
-      personForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        var id = personId.value;
-        var body = { name: personName.value, age: parseInt(personAge.value, 10) || 0, hobby: personHobby.value || '' };
-        if (id) {
-          fetch(origin + '/api/persons/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-            .then(function(r) { return r.json(); })
-            .then(function() { personId.value = ''; personSubmit.textContent = 'Add Person'; personCancel.style.display = 'none'; personEditHint.style.display = 'none'; loadPersons(); })
-            .catch(function() {});
-        } else {
-          fetch(origin + '/api/persons', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-            .then(function(r) { return r.json(); })
-            .then(function() { loadPersons(); })
-            .catch(function() {});
-        }
-      });
-      personCancel.addEventListener('click', function() {
-        personId.value = ''; personSubmit.textContent = 'Add Person'; personCancel.style.display = 'none'; personEditHint.style.display = 'none';
-      });
 
       // --- Device ---
       var deviceForm = document.getElementById('deviceForm');
@@ -374,8 +314,92 @@
         deviceId.value = ''; deviceSubmit.textContent = 'Add Device'; deviceCancel.style.display = 'none'; deviceEditHint.style.display = 'none';
       });
 
-      loadPersons();
+      // --- Customer ---
+      var customerForm = document.getElementById('customerForm');
+      var customerId = document.getElementById('customerId');
+      var customerName = document.getElementById('customerName');
+      var customerAddress = document.getElementById('customerAddress');
+      var customerCity = document.getElementById('customerCity');
+      var customerPanel = document.getElementById('customerPanel');
+      var customerZonelist = document.getElementById('customerZonelist');
+      var customerSubmit = document.getElementById('customerSubmit');
+      var customerCancel = document.getElementById('customerCancel');
+      var customerEditHint = document.getElementById('customerEditHint');
+      var customerEditId = document.getElementById('customerEditId');
+      var customerList = document.getElementById('customerList');
+
+      function loadCustomers() {
+        fetch(origin + '/api/customers').then(function(r) { return r.json(); }).then(function(arr) {
+          customerList.innerHTML = '';
+          (arr || []).forEach(function(c) {
+            var row = document.createElement('div');
+            row.className = 'list-item';
+            row.innerHTML =
+              '<div class="info">' + escapeHtml(c.name) + ' — ' + escapeHtml(c.address || '') + ', ' + escapeHtml(c.city || '') + ' (panel: ' + escapeHtml(c.panel || '-') + ')</div>' +
+              '<div class="actions">' +
+              '<button type="button" class="btn btn-ghost btn-sm" data-edit="' + c.id + '">Edit</button>' +
+              '<button type="button" class="btn btn-danger btn-sm" data-delete="' + c.id + '">Delete</button>' +
+              '</div>';
+            customerList.appendChild(row);
+          });
+          customerList.querySelectorAll('[data-edit]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              var id = btn.getAttribute('data-edit');
+              var c = (arr || []).find(function(x) { return x.id === id; }) || {};
+              customerId.value = id;
+              customerName.value = c.name || '';
+              customerAddress.value = c.address || '';
+              customerCity.value = c.city || '';
+              customerPanel.value = c.panel || '';
+              customerZonelist.value = (c.zonelist && c.zonelist.length) ? JSON.stringify(c.zonelist.map(function(z) { return { zoneNumber: z.zoneNumber, zoneName: z.zoneName }; })) : '[]';
+              customerSubmit.textContent = 'Save';
+              customerCancel.style.display = 'inline-block';
+              customerEditHint.style.display = 'block';
+              customerEditId.textContent = id;
+            });
+          });
+          customerList.querySelectorAll('[data-delete]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              var id = btn.getAttribute('data-delete');
+              if (!confirm('Delete this customer?')) return;
+              fetch(origin + '/api/customers/' + id, { method: 'DELETE' })
+                .then(function(r) { if (r.ok) loadCustomers(); });
+            });
+          });
+        }).catch(function() { customerList.innerHTML = '<div class="list-item">Failed to load</div>'; });
+      }
+      customerForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var id = customerId.value;
+        var zonelistRaw = customerZonelist.value.trim();
+        var zonelist = [];
+        try { zonelist = zonelistRaw ? JSON.parse(zonelistRaw) : []; } catch (err) { alert('Invalid zonelist JSON'); return; }
+        if (!Array.isArray(zonelist)) zonelist = [];
+        var body = {
+          name: customerName.value,
+          address: customerAddress.value || '',
+          city: customerCity.value || '',
+          panel: customerPanel.value || null,
+          zonelist: zonelist
+        };
+        if (id) {
+          fetch(origin + '/api/customers/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+            .then(function(r) { return r.json(); })
+            .then(function() { customerId.value = ''; customerSubmit.textContent = 'Add Customer'; customerCancel.style.display = 'none'; customerEditHint.style.display = 'none'; loadCustomers(); })
+            .catch(function() {});
+        } else {
+          fetch(origin + '/api/customers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+            .then(function(r) { return r.json(); })
+            .then(function() { loadCustomers(); })
+            .catch(function() {});
+        }
+      });
+      customerCancel.addEventListener('click', function() {
+        customerId.value = ''; customerSubmit.textContent = 'Add Customer'; customerCancel.style.display = 'none'; customerEditHint.style.display = 'none';
+      });
+
       loadDevices();
+      loadCustomers();
 
       var socket = null;
 
@@ -390,8 +414,8 @@
         socket = io(url, { path: '/socket.io/', transports: ['websocket', 'polling'], autoConnect: false });
         socket.on('connect', function() { setConnected(true); });
         socket.on('disconnect', function() { setConnected(false); });
-        socket.on('person', function(msg) { addEvent(personEl, msg.action, msg.payload); });
         socket.on('device', function(msg) { addEvent(deviceEl, msg.action, msg.payload); });
+        socket.on('customer', function(msg) { addEvent(customerEl, msg.action, msg.payload); });
         socket.connect();
       }
 
@@ -401,6 +425,18 @@
       });
 
       connectSocket();
+    })();
+    (function() {
+      var KEY = 'appTheme';
+      var btn = document.getElementById('themeToggle');
+      if (!btn) return;
+      function isDay() { return document.body.classList.contains('day-mode'); }
+      function setDay(on) {
+        if (on) { document.body.classList.add('day-mode'); btn.textContent = 'Day'; try { localStorage.setItem(KEY, 'day'); } catch(e) {} }
+        else { document.body.classList.remove('day-mode'); btn.textContent = 'Night'; try { localStorage.setItem(KEY, 'night'); } catch(e) {} }
+      }
+      if (localStorage.getItem(KEY) !== 'night') setDay(true);
+      btn.addEventListener('click', function() { setDay(!isDay()); });
     })();
   </script>
 </body>

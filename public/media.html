@@ -93,9 +93,13 @@
     .status.playing { color: #4ade80; }
     .hint { font-size: 13px; color: var(--muted); margin-bottom: 16px; max-width: 960px; width: 100%; }
     .hint code { background: var(--surface); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    body.day-mode { --bg: #f4f4f5; --surface: #fff; --border: #e4e4e7; --text: #18181b; --muted: #71717a; }
+    .theme-toggle { position: absolute; top: 24px; right: 24px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font-size: 13px; cursor: pointer; }
+    .theme-toggle:hover { border-color: var(--accent); }
   </style>
 </head>
-<body>
+<body class="day-mode">
+  <button type="button" class="theme-toggle" id="themeToggle" title="Toggle day/night mode">Day</button>
   <p style="margin-bottom:12px;"><a href="/s/index.html" style="color:var(--muted);font-size:13px;text-decoration:none;">← Home</a></p>
   <h1>Media Player</h1>
   <p class="hint"><strong>Local video:</strong> Put files in the project <code>files</code> folder, then use <code>/api/files/stream?path=yourvideo.mp4</code> (full URL: <code>http://localhost:3000/api/files/stream?path=yourvideo.mp4</code>). Or put in <code>public/videos/</code> and use <code>http://localhost:3000/s/videos/yourvideo.mp4</code>.</p>
@@ -169,6 +173,18 @@
     playBtn.addEventListener('click', play);
     stopBtn.addEventListener('click', stop);
     urlInput.addEventListener('keydown', (e) => e.key === 'Enter' && play());
+    (function() {
+      var KEY = 'appTheme';
+      var btn = document.getElementById('themeToggle');
+      if (!btn) return;
+      function isDay() { return document.body.classList.contains('day-mode'); }
+      function setDay(on) {
+        if (on) { document.body.classList.add('day-mode'); btn.textContent = 'Day'; try { localStorage.setItem(KEY, 'day'); } catch(e) {} }
+        else { document.body.classList.remove('day-mode'); btn.textContent = 'Night'; try { localStorage.setItem(KEY, 'night'); } catch(e) {} }
+      }
+      if (localStorage.getItem(KEY) !== 'night') setDay(true);
+      btn.addEventListener('click', function() { setDay(!isDay()); });
+    })();
   </script>
 </body>
 </html>

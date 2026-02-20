@@ -38,4 +38,8 @@ export class AppController {
   @Get('viewer-3d.html')
   @Redirect('/s/viewer-3d.html', 302)
   redirectViewer3d() {}
+
+  @Get('chat.html')
+  @Redirect('/s/chat.html', 302)
+  redirectChat() {}
 }

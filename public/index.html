@@ -33,10 +33,10 @@
       letter-spacing: -0.02em;
     }
     .links {
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 12px;
-      min-width: 280px;
+      min-width: 520px;
     }
     .links a {
       display: block;
@@ -73,9 +73,30 @@
     .ip-box .value { font-family: ui-monospace, monospace; }
     .ip-box .row { margin-bottom: 8px; }
     .ip-box .row:last-child { margin-bottom: 0; }
+    body.day-mode {
+      --bg: #f4f4f5;
+      --surface: #fff;
+      --border: #e4e4e7;
+      --text: #18181b;
+      --muted: #71717a;
+    }
+    .theme-toggle {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
   </style>
 </head>
-<body>
+<body class="day-mode">
+  <button type="button" class="theme-toggle" id="themeToggle" title="Toggle day/night mode">Day</button>
   <h1>Home</h1>
   <div class="ip-box" id="ipBox">
     <div class="row"><span class="label">Local:</span><span class="value" id="localIp">—</span></div>
@@ -96,19 +117,27 @@
     </a>
     <a href="/s/rest-test.html">
       <span>REST Test</span>
-      <div class="desc">Test HTTP REST API (e.g. /api/persons, /api/info)</div>
+      <div class="desc">Test HTTP REST API (devices, customers, /api/info)</div>
     </a>
     <a href="/s/websocket-test.html">
       <span>WebSocket Test</span>
-      <div class="desc">Live person & device events via Socket.IO</div>
+      <div class="desc">Live device & customer events via Socket.IO</div>
     </a>
     <a href="/s/mqtt-test.html">
       <span>MQTT Test</span>
-      <div class="desc">Live person & device events via MQTT (add/edit/delete)</div>
+      <div class="desc">Live device & customer events via MQTT</div>
+    </a>
+    <a href="/s/rest-test.html#customerCard">
+      <span>Customer API</span>
+      <div class="desc">REST, WebSocket, MQTT test for customers (name, address, city, panel, zones)</div>
     </a>
     <a href="/s/viewer-3d.html">
       <span>3D Model Viewer</span>
       <div class="desc">View GLB model (files/3d models/122.glb) — rotate, zoom, pan</div>
+    </a>
+    <a href="/s/chat.html">
+      <span>Chat</span>
+      <div class="desc">Real-time chat (WebSocket + PostgreSQL)</div>
     </a>
   </nav>
   <script>
@@ -125,6 +154,18 @@
           localEl.textContent = window.location.hostname || '—';
           publicEl.textContent = '—';
         });
+    })();
+    (function() {
+      var KEY = 'appTheme';
+      var btn = document.getElementById('themeToggle');
+      if (!btn) return;
+      function isDay() { return document.body.classList.contains('day-mode'); }
+      function setDay(on) {
+        if (on) { document.body.classList.add('day-mode'); btn.textContent = 'Day'; try { localStorage.setItem(KEY, 'day'); } catch(e) {} }
+        else { document.body.classList.remove('day-mode'); btn.textContent = 'Night'; try { localStorage.setItem(KEY, 'night'); } catch(e) {} }
+      }
+      if (localStorage.getItem(KEY) !== 'night') setDay(true);
+      btn.addEventListener('click', function() { setDay(!isDay()); });
     })();
   </script>
 </body>

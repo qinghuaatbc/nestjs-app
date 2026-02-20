@@ -99,59 +99,19 @@
     .empty-msg { color: var(--muted); text-align: center; padding: 24px; }
     input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent); }
     .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 12px; color: var(--muted); }
+    body.day-mode { --bg: #f4f4f5; --surface: #fff; --border: #e4e4e7; --text: #18181b; --muted: #71717a; }
+    .theme-toggle { position: absolute; top: 24px; right: 24px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font-size: 13px; cursor: pointer; }
+    .theme-toggle:hover { border-color: var(--accent); }
   </style>
 </head>
-<body>
+<body class="day-mode">
+  <button type="button" class="theme-toggle" id="themeToggle" title="Toggle day/night mode">Day</button>
   <div class="wrap">
     <p class="home-link"><a href="/s/index.html">← Home</a></p>
     <h1>REST Test</h1>
     <div style="font-size: 12px; color: var(--muted); margin-bottom: 16px;">
       <label style="margin-right: 6px;">Base URL:</label>
       <input type="text" id="baseUrl" placeholder="http://localhost:3000" style="font-family: ui-monospace, monospace; padding: 6px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px; min-width: 260px;" />
-    </div>
-
-    <!-- Persons -->
-    <div class="card">
-      <h2>Persons</h2>
-      <div class="section-title" id="formTitle">Add Person</div>
-      <div class="form-row">
-        <label>Name</label>
-        <input type="text" id="inputName" placeholder="Name" />
-        <label>Age</label>
-        <input type="number" id="inputAge" placeholder="0" min="0" value="0" />
-        <label>Hobby</label>
-        <input type="text" id="inputHobby" placeholder="Hobby" />
-        <button type="button" class="btn" id="btnSubmit">Add</button>
-        <button type="button" class="btn btn-ghost" id="btnCancel" style="display:none;">Cancel</button>
-      </div>
-    </div>
-
-    <!-- Table + Pagination -->
-    <div class="card">
-      <div class="form-row" style="margin-bottom:16px;">
-        <button type="button" class="btn btn-ghost btn-sm" id="btnRefresh">Refresh</button>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Age</th>
-              <th>Hobby</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="tableBody"></tbody>
-        </table>
-      </div>
-      <div id="emptyMsg" class="empty-msg" style="display:none;">No persons. Add one above.</div>
-      <div class="pagination" id="pagination" style="display:none;">
-        <span class="pagination-info" id="pageInfo"></span>
-        <div class="pagination-btns">
-          <button type="button" class="btn btn-ghost btn-sm" id="btnPrev">Previous</button>
-          <button type="button" class="btn btn-ghost btn-sm" id="btnNext">Next</button>
-        </div>
-      </div>
     </div>
 
     <!-- Devices -->
@@ -199,16 +159,58 @@
       </div>
     </div>
 
+    <!-- Customers -->
+    <div class="card" id="customerCard">
+      <h2>Customers</h2>
+      <div class="section-title" id="custFormTitle">Add Customer</div>
+      <div class="form-row">
+        <label>Name</label>
+        <input type="text" id="custName" placeholder="Name" />
+        <label>Address</label>
+        <input type="text" id="custAddress" placeholder="Address" />
+        <label>City</label>
+        <input type="text" id="custCity" placeholder="City" />
+        <label>Panel</label>
+        <input type="text" id="custPanel" placeholder="Panel ID" />
+      </div>
+      <div class="form-row">
+        <label>Zones (JSON)</label>
+        <input type="text" id="custZonelist" placeholder='[{"zoneNumber":"1","zoneName":"Front Door"}]' style="flex:1;min-width:200px;" />
+      </div>
+      <div class="form-row">
+        <button type="button" class="btn" id="custBtnSubmit">Add</button>
+        <button type="button" class="btn btn-ghost" id="custBtnCancel" style="display:none;">Cancel</button>
+      </div>
+      <div class="form-row" style="margin-top:12px;">
+        <button type="button" class="btn btn-ghost btn-sm" id="custBtnRefresh">Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Address</th>
+              <th>City</th>
+              <th>Panel</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="custTableBody"></tbody>
+        </table>
+      </div>
+      <div id="custEmptyMsg" class="empty-msg" style="display:none;">No customers. Add one above.</div>
+    </div>
+
     <!-- HTTP REST -->
     <div class="card">
       <h2>HTTP REST</h2>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Send any request to API endpoints. Use path (e.g. /api/persons) or full URL.</p>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Send any request to API endpoints. Use path (e.g. /api/devices) or full URL.</p>
       <div class="raw-presets" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
-        <button type="button" class="btn btn-ghost btn-sm raw-preset" data-method="GET" data-url="/api/persons">GET /api/persons</button>
         <button type="button" class="btn btn-ghost btn-sm raw-preset" data-method="GET" data-url="/api/devices">GET /api/devices</button>
+        <button type="button" class="btn btn-ghost btn-sm raw-preset" data-method="GET" data-url="/api/customers">GET /api/customers</button>
         <button type="button" class="btn btn-ghost btn-sm raw-preset" data-method="GET" data-url="/api/info">GET /api/info</button>
-        <button type="button" class="btn btn-ghost btn-sm raw-preset" data-method="POST" data-url="/api/persons" data-body='{"name":"New","age":20,"hobby":"test"}'>POST /api/persons</button>
         <button type="button" class="btn btn-ghost btn-sm raw-preset" data-method="POST" data-url="/api/devices" data-body='{"name":"Device1","location":"Room A","onOff":true,"level":50}'>POST /api/devices</button>
+        <button type="button" class="btn btn-ghost btn-sm raw-preset" data-method="POST" data-url="/api/customers" data-body='{"name":"New Customer","address":"1 St","city":"NYC","panel":"P1","zonelist":[{"zoneNumber":"1","zoneName":"Zone A"}]}'>POST /api/customers</button>
       </div>
       <div class="raw-row">
         <select id="method">
@@ -217,12 +219,12 @@
           <option value="PATCH">PATCH</option>
           <option value="DELETE">DELETE</option>
         </select>
-        <input type="text" id="url" placeholder="Path or URL e.g. /api/persons" value="/api/persons" />
+        <input type="text" id="url" placeholder="Path or URL e.g. /api/devices" value="/api/devices" />
         <button type="button" class="btn btn-sm" id="sendBtn">Send</button>
       </div>
       <div id="bodyWrap" style="margin-top:8px;">
         <label class="label">Body (JSON)</label>
-        <textarea id="body" placeholder='{"name":"","age":0,"hobby":""}' style="margin-top:4px;"></textarea>
+        <textarea id="body" placeholder='{"name":"","location":"","onOff":false,"level":0}' style="margin-top:4px;"></textarea>
       </div>
       <div id="responseCard" style="margin-top:12px; display:none;">
         <span class="status" id="status"></span>
@@ -232,8 +234,6 @@
   </div>
 
   <script>
-    var API = '/api/persons';
-    var PAGE_SIZE = 5;
     var baseUrlInput = document.getElementById('baseUrl');
     if (baseUrlInput) baseUrlInput.value = window.location.origin;
     function getBaseUrl() {
@@ -245,151 +245,12 @@
       var p = (path.startsWith('/') ? path : '/' + path);
       return base + p;
     }
-    var allPersons = [];
-    var currentPage = 1;
-    var editingId = null;
-
-    var inputName = document.getElementById('inputName');
-    var inputAge = document.getElementById('inputAge');
-    var inputHobby = document.getElementById('inputHobby');
-    var btnSubmit = document.getElementById('btnSubmit');
-    var btnCancel = document.getElementById('btnCancel');
-    var formTitle = document.getElementById('formTitle');
-    var tableBody = document.getElementById('tableBody');
-    var emptyMsg = document.getElementById('emptyMsg');
-    var pagination = document.getElementById('pagination');
-    var pageInfo = document.getElementById('pageInfo');
-    var btnPrev = document.getElementById('btnPrev');
-    var btnNext = document.getElementById('btnNext');
-    var btnRefresh = document.getElementById('btnRefresh');
-
-    function getTotalPages() {
-      return Math.max(1, Math.ceil(allPersons.length / PAGE_SIZE));
-    }
-
-    function getPageRows() {
-      var start = (currentPage - 1) * PAGE_SIZE;
-      return allPersons.slice(start, start + PAGE_SIZE);
-    }
-
-    function renderTable() {
-      var rows = getPageRows();
-      tableBody.innerHTML = '';
-      if (allPersons.length === 0) {
-        emptyMsg.style.display = 'block';
-        pagination.style.display = 'none';
-        return;
-      }
-      emptyMsg.style.display = 'none';
-      rows.forEach(function(p) {
-        var tr = document.createElement('tr');
-        tr.innerHTML =
-          '<td>' + escapeHtml(p.name) + '</td>' +
-          '<td>' + escapeHtml(String(p.age)) + '</td>' +
-          '<td>' + escapeHtml(p.hobby || '') + '</td>' +
-          '<td class="actions">' +
-          '<button type="button" class="btn btn-ghost btn-sm btn-edit" data-id="' + escapeHtml(p.id) + '">Edit</button>' +
-          '<button type="button" class="btn btn-danger btn-sm btn-del" data-id="' + escapeHtml(p.id) + '">Delete</button>' +
-          '</td>';
-        tableBody.appendChild(tr);
-      });
-      tableBody.querySelectorAll('.btn-edit').forEach(function(btn) {
-        btn.addEventListener('click', function() { startEdit(btn.getAttribute('data-id')); });
-      });
-      tableBody.querySelectorAll('.btn-del').forEach(function(btn) {
-        btn.addEventListener('click', function() { doDelete(btn.getAttribute('data-id')); });
-      });
-
-      var total = getTotalPages();
-      pagination.style.display = 'flex';
-      pageInfo.textContent = 'Page ' + currentPage + ' of ' + total + ' (' + allPersons.length + ' total)';
-      btnPrev.disabled = currentPage <= 1;
-      btnNext.disabled = currentPage >= total;
-    }
-
     function escapeHtml(s) {
       if (s == null) return '';
       var div = document.createElement('div');
       div.textContent = s;
       return div.innerHTML;
     }
-
-    function loadPersons() {
-      fetch(apiUrl(API))
-        .then(function(r) { if (!r.ok) throw new Error(r.statusText); return r.json(); })
-        .then(function(data) {
-          allPersons = Array.isArray(data) ? data : [];
-          currentPage = Math.min(currentPage, getTotalPages()) || 1;
-          renderTable();
-        })
-        .catch(function(e) {
-          allPersons = [];
-          renderTable();
-          tableBody.innerHTML = '<tr><td colspan="4" class="empty-msg">Failed to load: ' + escapeHtml(e.message) + '</td></tr>';
-        });
-    }
-
-    function resetForm() {
-      editingId = null;
-      inputName.value = '';
-      inputAge.value = '0';
-      inputHobby.value = '';
-      formTitle.textContent = 'Add Person';
-      btnSubmit.textContent = 'Add';
-      btnCancel.style.display = 'none';
-    }
-
-    function startEdit(id) {
-      var p = allPersons.find(function(x) { return x.id === id; });
-      if (!p) return;
-      editingId = id;
-      inputName.value = p.name || '';
-      inputAge.value = String(p.age != null ? p.age : 0);
-      inputHobby.value = p.hobby || '';
-      formTitle.textContent = 'Edit Person';
-      btnSubmit.textContent = 'Update';
-      btnCancel.style.display = 'inline-block';
-    }
-
-    function doSubmit() {
-      var name = inputName.value.trim();
-      var age = parseInt(inputAge.value, 10) || 0;
-      var hobby = inputHobby.value.trim();
-      if (!name) return;
-
-      if (editingId) {
-        fetch(apiUrl(API + '/' + encodeURIComponent(editingId)), {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: name, age: age, hobby: hobby })
-        })
-          .then(function(r) { if (!r.ok) throw new Error(r.statusText); return loadPersons(); })
-          .then(resetForm)
-          .catch(function(e) { alert('Update failed: ' + e.message); });
-      } else {
-        fetch(apiUrl(API), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: name, age: age, hobby: hobby })
-        })
-          .then(function(r) { if (!r.ok) throw new Error(r.statusText); return loadPersons(); })
-          .then(resetForm)
-          .catch(function(e) { alert('Add failed: ' + e.message); });
-      }
-    }
-
-    function doDelete(id) {
-      if (!confirm('Delete this person?')) return;
-      fetch(apiUrl(API + '/' + encodeURIComponent(id)), { method: 'DELETE' })
-        .then(function(r) { if (!r.ok) throw new Error(r.statusText); return loadPersons(); })
-        .catch(function(e) { alert('Delete failed: ' + e.message); });
-    }
-
-    btnSubmit.addEventListener('click', doSubmit);
-    btnCancel.addEventListener('click', resetForm);
-    btnRefresh.addEventListener('click', loadPersons);
-    btnPrev.addEventListener('click', function() { if (currentPage > 1) { currentPage--; renderTable(); } });
-    btnNext.addEventListener('click', function() { if (currentPage < getTotalPages()) { currentPage++; renderTable(); } });
 
     document.getElementById('bodyWrap').style.display = 'none';
     document.getElementById('method').addEventListener('change', function() {
@@ -407,7 +268,6 @@
         document.getElementById('sendBtn').click();
       });
     });
-
     function fullUrl(path) {
       if (path.startsWith('http')) return path;
       return apiUrl(path);
@@ -444,8 +304,6 @@
           bodyEl.textContent = e.message;
         });
     });
-
-    loadPersons();
 
     // --- Devices ---
     var DEVICE_API = '/api/devices';
@@ -575,6 +433,124 @@
       if (devicePage < getDeviceTotalPages()) { devicePage++; renderDeviceTable(); }
     });
     loadDevices();
+
+    // --- Customers ---
+    var CUST_API = '/api/customers';
+    var allCustomers = [];
+    var editingCustId = null;
+    var custTableBody = document.getElementById('custTableBody');
+    var custEmptyMsg = document.getElementById('custEmptyMsg');
+    function renderCustomerTable() {
+      custTableBody.innerHTML = '';
+      if (allCustomers.length === 0) {
+        custEmptyMsg.style.display = 'block';
+        return;
+      }
+      custEmptyMsg.style.display = 'none';
+      allCustomers.forEach(function(c) {
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' + escapeHtml(c.name || '') + '</td>' +
+          '<td>' + escapeHtml(c.address || '') + '</td>' +
+          '<td>' + escapeHtml(c.city || '') + '</td>' +
+          '<td>' + escapeHtml(c.panel || '') + '</td>' +
+          '<td class="actions">' +
+          '<button type="button" class="btn btn-ghost btn-sm cust-edit" data-id="' + escapeHtml(c.id) + '">Edit</button>' +
+          '<button type="button" class="btn btn-danger btn-sm cust-del" data-id="' + escapeHtml(c.id) + '">Delete</button>' +
+          '</td>';
+        custTableBody.appendChild(tr);
+      });
+      custTableBody.querySelectorAll('.cust-edit').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var id = btn.getAttribute('data-id');
+          var c = allCustomers.find(function(x) { return x.id === id; });
+          if (!c) return;
+          editingCustId = id;
+          document.getElementById('custName').value = c.name || '';
+          document.getElementById('custAddress').value = c.address || '';
+          document.getElementById('custCity').value = c.city || '';
+          document.getElementById('custPanel').value = c.panel || '';
+          document.getElementById('custZonelist').value = (c.zonelist && c.zonelist.length) ? JSON.stringify(c.zonelist.map(function(z) { return { zoneNumber: z.zoneNumber, zoneName: z.zoneName }; }), null, 2) : '[]';
+          document.getElementById('custFormTitle').textContent = 'Edit Customer';
+          document.getElementById('custBtnSubmit').textContent = 'Update';
+          document.getElementById('custBtnCancel').style.display = 'inline-block';
+        });
+      });
+      custTableBody.querySelectorAll('.cust-del').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var id = btn.getAttribute('data-id');
+          if (!confirm('Delete this customer?')) return;
+          fetch(apiUrl(CUST_API + '/' + encodeURIComponent(id)), { method: 'DELETE' })
+            .then(function(r) { if (!r.ok) throw new Error(r.statusText); return loadCustomers(); })
+            .catch(function(e) { alert('Delete failed: ' + e.message); });
+        });
+      });
+    }
+    function loadCustomers() {
+      fetch(apiUrl(CUST_API))
+        .then(function(r) { if (!r.ok) throw new Error(r.statusText); return r.json(); })
+        .then(function(data) {
+          allCustomers = Array.isArray(data) ? data : [];
+          renderCustomerTable();
+        })
+        .catch(function(e) {
+          allCustomers = [];
+          custTableBody.innerHTML = '<tr><td colspan="5" class="empty-msg">Failed to load: ' + escapeHtml(e.message) + '</td></tr>';
+        });
+    }
+    function resetCustForm() {
+      editingCustId = null;
+      document.getElementById('custName').value = '';
+      document.getElementById('custAddress').value = '';
+      document.getElementById('custCity').value = '';
+      document.getElementById('custPanel').value = '';
+      document.getElementById('custZonelist').value = '[{"zoneNumber":"1","zoneName":""}]';
+      document.getElementById('custFormTitle').textContent = 'Add Customer';
+      document.getElementById('custBtnSubmit').textContent = 'Add';
+      document.getElementById('custBtnCancel').style.display = 'none';
+    }
+    document.getElementById('custBtnSubmit').addEventListener('click', function() {
+      var name = document.getElementById('custName').value.trim();
+      var address = document.getElementById('custAddress').value.trim();
+      var city = document.getElementById('custCity').value.trim();
+      var panel = document.getElementById('custPanel').value.trim() || null;
+      var zonelistRaw = document.getElementById('custZonelist').value.trim();
+      var zonelist = [];
+      try { zonelist = zonelistRaw ? JSON.parse(zonelistRaw) : []; } catch (e) { alert('Invalid zonelist JSON'); return; }
+      if (!Array.isArray(zonelist)) zonelist = [];
+      var body = JSON.stringify({ name: name || '', address: address, city: city, panel: panel, zonelist: zonelist });
+      if (editingCustId) {
+        fetch(apiUrl(CUST_API + '/' + encodeURIComponent(editingCustId)), {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: body
+        }).then(function(r) { if (!r.ok) throw new Error(r.statusText); return loadCustomers(); })
+          .then(resetCustForm).catch(function(e) { alert('Update failed: ' + e.message); });
+      } else {
+        fetch(apiUrl(CUST_API), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: body
+        }).then(function(r) { if (!r.ok) throw new Error(r.statusText); return loadCustomers(); })
+          .then(resetCustForm).catch(function(e) { alert('Add failed: ' + e.message); });
+      }
+    });
+    document.getElementById('custBtnCancel').addEventListener('click', resetCustForm);
+    document.getElementById('custBtnRefresh').addEventListener('click', loadCustomers);
+    loadCustomers();
+
+    (function() {
+      var KEY = 'appTheme';
+      var btn = document.getElementById('themeToggle');
+      if (!btn) return;
+      function isDay() { return document.body.classList.contains('day-mode'); }
+      function setDay(on) {
+        if (on) { document.body.classList.add('day-mode'); btn.textContent = 'Day'; try { localStorage.setItem(KEY, 'day'); } catch(e) {} }
+        else { document.body.classList.remove('day-mode'); btn.textContent = 'Night'; try { localStorage.setItem(KEY, 'night'); } catch(e) {} }
+      }
+      if (localStorage.getItem(KEY) !== 'night') setDay(true);
+      btn.addEventListener('click', function() { setDay(!isDay()); });
+    })();
   </script>
 </body>
 </html>

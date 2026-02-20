@@ -71,9 +71,13 @@
       text-align: center;
       max-width: 320px;
     }
+    body.day-mode { --bg: #f4f4f5; --surface: #fff; --border: #e4e4e7; --text: #18181b; --muted: #71717a; }
+    .theme-toggle { position: absolute; top: 12px; right: 24px; z-index: 10; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font-size: 13px; cursor: pointer; }
+    .theme-toggle:hover { border-color: var(--accent); }
   </style>
 </head>
-<body>
+<body class="day-mode">
+  <button type="button" class="theme-toggle" id="themeToggle" title="Toggle day/night mode">Day</button>
   <div class="top-bar">
     <div class="home-link"><a href="/s/index.html">← Home</a></div>
     <span class="title">3D Model Viewer</span>
@@ -211,6 +215,20 @@
       renderer.render(scene, camera);
     }
     animate();
+  </script>
+  <script>
+    (function() {
+      var KEY = 'appTheme';
+      var btn = document.getElementById('themeToggle');
+      if (!btn) return;
+      function isDay() { return document.body.classList.contains('day-mode'); }
+      function setDay(on) {
+        if (on) { document.body.classList.add('day-mode'); btn.textContent = 'Day'; try { localStorage.setItem(KEY, 'day'); } catch(e) {} }
+        else { document.body.classList.remove('day-mode'); btn.textContent = 'Night'; try { localStorage.setItem(KEY, 'night'); } catch(e) {} }
+      }
+      if (localStorage.getItem(KEY) !== 'night') setDay(true);
+      btn.addEventListener('click', function() { setDay(!isDay()); });
+    })();
   </script>
 </body>
 </html>
