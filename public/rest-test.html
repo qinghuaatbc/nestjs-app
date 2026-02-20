@@ -105,6 +105,10 @@
   <div class="wrap">
     <p class="home-link"><a href="/s/index.html">← Home</a></p>
     <h1>REST Test</h1>
+    <div style="font-size: 12px; color: var(--muted); margin-bottom: 16px;">
+      <label style="margin-right: 6px;">Base URL:</label>
+      <input type="text" id="baseUrl" placeholder="http://localhost:3000" style="font-family: ui-monospace, monospace; padding: 6px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px; min-width: 260px;" />
+    </div>
 
     <!-- Persons -->
     <div class="card">
@@ -230,6 +234,17 @@
   <script>
     var API = '/api/persons';
     var PAGE_SIZE = 5;
+    var baseUrlInput = document.getElementById('baseUrl');
+    if (baseUrlInput) baseUrlInput.value = window.location.origin;
+    function getBaseUrl() {
+      var b = (baseUrlInput && baseUrlInput.value) ? baseUrlInput.value.trim() : '';
+      return b || window.location.origin;
+    }
+    function apiUrl(path) {
+      var base = getBaseUrl().replace(/\/$/, '');
+      var p = (path.startsWith('/') ? path : '/' + path);
+      return base + p;
+    }
     var allPersons = [];
     var currentPage = 1;
     var editingId = null;
@@ -300,7 +315,7 @@
     }
 
     function loadPersons() {
-      fetch(API)
+      fetch(apiUrl(API))
         .then(function(r) { if (!r.ok) throw new Error(r.statusText); return r.json(); })
         .then(function(data) {
           allPersons = Array.isArray(data) ? data : [];
@@ -343,7 +358,7 @@
       if (!name) return;
 
       if (editingId) {
-        fetch(API + '/' + encodeURIComponent(editingId), {
+        fetch(apiUrl(API + '/' + encodeURIComponent(editingId)), {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: name, age: age, hobby: hobby })
@@ -352,7 +367,7 @@
           .then(resetForm)
           .catch(function(e) { alert('Update failed: ' + e.message); });
       } else {
-        fetch(API, {
+        fetch(apiUrl(API), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: name, age: age, hobby: hobby })
@@ -365,7 +380,7 @@
 
     function doDelete(id) {
       if (!confirm('Delete this person?')) return;
-      fetch(API + '/' + encodeURIComponent(id), { method: 'DELETE' })
+      fetch(apiUrl(API + '/' + encodeURIComponent(id)), { method: 'DELETE' })
         .then(function(r) { if (!r.ok) throw new Error(r.statusText); return loadPersons(); })
         .catch(function(e) { alert('Delete failed: ' + e.message); });
     }
@@ -395,7 +410,7 @@
 
     function fullUrl(path) {
       if (path.startsWith('http')) return path;
-      return window.location.origin + (path.startsWith('/') ? path : '/' + path);
+      return apiUrl(path);
     }
     document.getElementById('sendBtn').addEventListener('click', function() {
       var method = document.getElementById('method').value;
@@ -485,7 +500,7 @@
       document.getElementById('devBtnNext').disabled = devicePage >= total;
     }
     function loadDevices() {
-      fetch(DEVICE_API)
+      fetch(apiUrl(DEVICE_API))
         .then(function(r) { if (!r.ok) throw new Error(r.statusText); return r.json(); })
         .then(function(data) {
           allDevices = Array.isArray(data) ? data : [];
@@ -529,14 +544,14 @@
       if (!name) return;
       var body = JSON.stringify({ name: name, location: location, onOff: onOff, level: level });
       if (editingDeviceId) {
-        fetch(DEVICE_API + '/' + encodeURIComponent(editingDeviceId), {
+        fetch(apiUrl(DEVICE_API + '/' + encodeURIComponent(editingDeviceId)), {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: body
         }).then(function(r) { if (!r.ok) throw new Error(r.statusText); return loadDevices(); })
           .then(resetDeviceForm).catch(function(e) { alert('Update failed: ' + e.message); });
       } else {
-        fetch(DEVICE_API, {
+        fetch(apiUrl(DEVICE_API), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: body
@@ -546,7 +561,7 @@
     }
     function doDeleteDevice(id) {
       if (!confirm('Delete this device?')) return;
-      fetch(DEVICE_API + '/' + encodeURIComponent(id), { method: 'DELETE' })
+      fetch(apiUrl(DEVICE_API + '/' + encodeURIComponent(id)), { method: 'DELETE' })
         .then(function(r) { if (!r.ok) throw new Error(r.statusText); return loadDevices(); })
         .catch(function(e) { alert('Delete failed: ' + e.message); });
     }

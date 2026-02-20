@@ -99,6 +99,7 @@
     .btn-ghost:hover { background: #3f3f46; }
     .btn-danger { background: var(--red); color: #fff; }
     .btn-danger:hover { opacity: 0.9; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .btn-sm { padding: 6px 10px; font-size: 12px; margin-left: 4px; }
     .list-wrap { margin-top: 12px; }
     .list-item {
@@ -120,9 +121,17 @@
   <div class="wrap">
     <div class="home-link"><a href="/s/index.html">← Home</a></div>
     <h1>WebSocket Test</h1>
-    <div id="status" class="status disconnected">
-      <span class="status-dot"></span>
-      <span id="statusText">Disconnected</span>
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap;">
+      <div id="status" class="status disconnected">
+        <span class="status-dot"></span>
+        <span id="statusText">Disconnected</span>
+      </div>
+      <button type="button" class="btn btn-ghost" id="btnDisconnect" disabled>Disconnect</button>
+      <button type="button" class="btn" id="btnConnect">Connect</button>
+    </div>
+    <div style="font-size: 12px; color: var(--muted); margin-bottom: 16px;">
+      <label style="margin-right: 6px;">URL:</label>
+      <input type="text" id="wsUrl" placeholder="http://localhost:3000" style="font-family: ui-monospace, monospace; padding: 6px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px; min-width: 260px;" />
     </div>
 
     <!-- Person: Add / Edit / Delete -->
@@ -184,6 +193,8 @@
     (function() {
       var MAX_EVENTS = 50;
       var origin = window.location.origin;
+      var wsUrlInput = document.getElementById('wsUrl');
+      if (wsUrlInput) wsUrlInput.value = origin;
       var personEl = document.getElementById('personEvents');
       var deviceEl = document.getElementById('deviceEvents');
       var statusEl = document.getElementById('status');
@@ -204,9 +215,15 @@
         div.textContent = s;
         return div.innerHTML;
       }
+      var btnConnect = document.getElementById('btnConnect');
+      var btnDisconnect = document.getElementById('btnDisconnect');
+
       function setConnected(ok) {
         statusEl.className = 'status ' + (ok ? 'connected' : 'disconnected');
         statusText.textContent = ok ? 'Connected' : 'Disconnected';
+        if (btnConnect) btnConnect.disabled = !!ok;
+        if (btnDisconnect) btnDisconnect.disabled = !ok;
+        if (wsUrlInput) wsUrlInput.disabled = !!ok;
       }
 
       // --- Person ---
@@ -360,11 +377,30 @@
       loadPersons();
       loadDevices();
 
-      var socket = io(origin, { path: '/socket.io/', transports: ['websocket', 'polling'] });
-      socket.on('connect', function() { setConnected(true); });
-      socket.on('disconnect', function() { setConnected(false); });
-      socket.on('person', function(msg) { addEvent(personEl, msg.action, msg.payload); });
-      socket.on('device', function(msg) { addEvent(deviceEl, msg.action, msg.payload); });
+      var socket = null;
+
+      function connectSocket() {
+        var url = (wsUrlInput && wsUrlInput.value ? wsUrlInput.value : origin).trim();
+        if (!url) return;
+        if (socket) {
+          socket.removeAllListeners();
+          socket.disconnect();
+          socket = null;
+        }
+        socket = io(url, { path: '/socket.io/', transports: ['websocket', 'polling'], autoConnect: false });
+        socket.on('connect', function() { setConnected(true); });
+        socket.on('disconnect', function() { setConnected(false); });
+        socket.on('person', function(msg) { addEvent(personEl, msg.action, msg.payload); });
+        socket.on('device', function(msg) { addEvent(deviceEl, msg.action, msg.payload); });
+        socket.connect();
+      }
+
+      if (btnConnect) btnConnect.addEventListener('click', connectSocket);
+      if (btnDisconnect) btnDisconnect.addEventListener('click', function() {
+        if (socket) socket.disconnect();
+      });
+
+      connectSocket();
     })();
   </script>
 </body>

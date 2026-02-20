@@ -34,4 +34,8 @@ export class AppController {
   @Get('mqtt-test.html')
   @Redirect('/s/mqtt-test.html', 302)
   redirectMqttTest() {}
+
+  @Get('viewer-3d.html')
+  @Redirect('/s/viewer-3d.html', 302)
+  redirectViewer3d() {}
 }
