@@ -71,21 +71,34 @@
     .room-row select {
       padding: 8px 12px;
       background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
       color: var(--text);
       font-size: 14px;
       min-width: 160px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      cursor: pointer;
+    }
+    .room-row select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
     }
     .room-row .add-room { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .room-row .add-room input {
-      padding: 8px 12px;
+      padding: 8px 14px;
       background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
       color: var(--text);
       font-size: 14px;
       width: 140px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .room-row .add-room input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
     }
     .room-row .add-room .btn { padding: 8px 14px; font-size: 13px; }
     .chat-list {
@@ -172,31 +185,55 @@
       flex-wrap: wrap;
     }
     .chat-form input[type="text"] {
-      padding: 10px 12px;
+      padding: 10px 14px;
       background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
       color: var(--text);
       font-size: 14px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
     }
-    .chat-form input[name="author"] { width: 120px; }
+    .chat-form input[type="text"]::placeholder { color: var(--muted); opacity: 0.8; }
+    .chat-form input[type="text"]:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+    .chat-form input[name="author"] { width: 155px; min-width: 155px; }
+    .chat-form input[name="author"]:read-only {
+      background: var(--bg);
+      cursor: default;
+      color: var(--muted);
+    }
     .chat-form input[name="content"] { flex: 1; min-width: 160px; }
     .chat-form .file-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .chat-form input[type="file"] { font-size: 12px; color: var(--muted); max-width: 180px; }
+    .chat-form input[type="file"] {
+      font-size: 12px;
+      color: var(--muted);
+      max-width: 180px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px dashed var(--border);
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+    .chat-form input[type="file"]:hover { border-color: var(--accent); }
     .chat-form .file-choice { font-size: 12px; color: var(--muted); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .chat-form .btn-cancel { background: var(--surface); border: 1px solid var(--border); color: var(--muted); padding: 8px 12px; font-size: 12px; }
     .chat-form .btn-cancel:hover { border-color: var(--red); color: var(--red); }
     .chat-form .btn {
       padding: 10px 18px;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
       background: var(--accent);
       color: #fff;
+      transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
     }
-    .chat-form .btn:hover { background: var(--accent-hover); }
+    .chat-form .btn:hover { background: var(--accent-hover); box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35); }
+    .chat-form .btn:active { transform: scale(0.98); }
+    .chat-form .btn:focus { outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3); }
     .register-box {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -208,9 +245,40 @@
       gap: 8px;
       align-items: center;
     }
-    .register-box input { padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; width: 140px; }
-    .register-box .btn { padding: 8px 14px; font-size: 13px; }
+    .register-box input {
+      padding: 9px 14px;
+      background: var(--bg);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 14px;
+      width: 140px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .register-box input::placeholder { color: var(--muted); }
+    .register-box input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+    .register-box .btn { padding: 9px 14px; font-size: 13px; transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease; }
+    .register-box .btn:hover { box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3); }
+    .register-box .btn:active { transform: scale(0.98); }
     .register-msg { font-size: 13px; }
+    .contacts-box { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .contacts-label { font-size: 13px; color: var(--muted); }
+    .friends-list { list-style: none; font-size: 13px; max-height: 120px; overflow-y: auto; width: 100%; }
+    .friends-list li { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; }
+    .friends-list .chat-with-btn { padding: 4px 10px; font-size: 12px; }
+    .btn-small {
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 8px;
+      transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+    }
+    .btn-small:hover { box-shadow: 0 1px 4px rgba(59, 130, 246, 0.25); }
+    .btn-small:active { transform: scale(0.98); }
+    .typing-indicator { font-size: 12px; color: var(--muted); padding: 4px 0; min-height: 20px; }
     .register-msg.ok { color: var(--green); }
     .register-msg.err { color: var(--red); }
     .user-badge { font-size: 12px; color: var(--muted); margin-left: auto; }
@@ -230,6 +298,22 @@
       cursor: pointer;
     }
     .theme-toggle:hover { border-color: var(--accent); }
+    .theme-toggle { transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+    .theme-toggle:focus { outline: none; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25); }
+    input[type="password"] {
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    #addFriendUsername {
+      padding: 8px 14px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    #addFriendUsername:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
   </style>
 </head>
 <body class="day-mode">
@@ -239,10 +323,18 @@
       <div class="home-link"><a href="/s/index.html">← Home</a></div>
       <h1>Chat</h1>
       <div id="registerBox" class="register-box">
-        <input type="text" id="regUsername" placeholder="Username (2–64 chars)" maxlength="64" />
+        <input type="text" id="regUsername" placeholder="Username" maxlength="64" />
+        <input type="password" id="regPassword" placeholder="Password (6+ chars)" maxlength="128" />
+        <button type="button" class="btn" id="btnLogin">Login</button>
         <button type="button" class="btn" id="btnRegister">Register</button>
         <span id="registerMsg" class="register-msg"></span>
         <span id="userBadge" class="user-badge" style="display:none;">Logged in as <span id="currentUser"></span> <button type="button" class="logout-btn" id="btnLogout">Logout</button></span>
+      </div>
+      <div id="contactsBox" class="contacts-box" style="display:none;">
+        <span class="contacts-label">Contacts</span>
+        <input type="text" id="addFriendUsername" placeholder="Username to add" maxlength="64" />
+        <button type="button" class="btn btn-small" id="btnAddFriend">Add</button>
+        <ul id="friendsList" class="friends-list"></ul>
       </div>
       <div id="status" class="status disconnected">Disconnected</div>
       <div class="room-row">
@@ -250,6 +342,7 @@
         <select id="roomSelect" title="Select room">
           <option value="">Loading…</option>
         </select>
+        <button type="button" class="btn btn-small" id="btnRetryRooms" style="display:none;" title="Retry loading rooms">Retry</button>
         <div class="add-room">
           <input type="text" id="newRoomName" placeholder="New room name" maxlength="128" />
           <button type="button" class="btn" id="btnAddRoom">Add room</button>
@@ -257,6 +350,7 @@
       </div>
     </div>
     <div id="chatList" class="chat-list"></div>
+    <div id="typingIndicator" class="typing-indicator" style="display:none;"></div>
     <form id="chatForm" class="chat-form">
       <input type="text" name="author" id="author" placeholder="Your name" maxlength="128" />
       <input type="text" name="content" id="content" placeholder="Message..." />
@@ -294,34 +388,60 @@
       var userBadge = document.getElementById('userBadge');
       var currentUserEl = document.getElementById('currentUser');
       var btnLogout = document.getElementById('btnLogout');
+      var regPassword = document.getElementById('regPassword');
+      var btnLogin = document.getElementById('btnLogin');
       var STORAGE_KEY = 'chatUsername';
+      var STORAGE_KEY_TOKEN = 'chatToken';
 
+      function setStoredToken(token) {
+        try { if (token) localStorage.setItem(STORAGE_KEY_TOKEN, token); else localStorage.removeItem(STORAGE_KEY_TOKEN); } catch (e) {}
+      }
+      function getStoredToken() {
+        try { return (localStorage.getItem(STORAGE_KEY_TOKEN) || '').trim(); } catch (e) { return ''; }
+      }
+      function getAuthHeaders() {
+        var t = getStoredToken(); return t ? { 'Authorization': 'Bearer ' + t } : {};
+      }
       function setStoredUser(name) {
-        if (name) {
-          try { localStorage.setItem(STORAGE_KEY, name); } catch (e) {}
-        } else {
-          try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
-        }
+        try { if (name) localStorage.setItem(STORAGE_KEY, name); else localStorage.removeItem(STORAGE_KEY); } catch (e) {}
       }
       function getStoredUser() {
         try { return (localStorage.getItem(STORAGE_KEY) || '').trim(); } catch (e) { return ''; }
       }
-      function showUserBadge(name) {
+      function getAnonymousGuestName() {
+        var n = Math.floor(Math.random() * 100) + 1;
+        return 'Anonymous' + ('00' + n).slice(-3);
+      }
+      function showUserBadge(name, token) {
         currentAuthor = name;
         authorInput.value = name;
+        authorInput.readOnly = true;
         currentUserEl.textContent = name;
         userBadge.style.display = 'inline';
+        regUsername.style.display = 'none';
+        if (regPassword) regPassword.style.display = 'none';
+        if (btnLogin) btnLogin.style.display = 'none';
+        if (btnRegister) btnRegister.style.display = 'none';
         registerMsg.textContent = '';
         registerMsg.className = 'register-msg';
+        var cb = document.getElementById('contactsBox'); if (cb) cb.style.display = 'flex';
+        if (token) setStoredToken(token);
+        setStoredUser(name);
+        loadFriends();
       }
       function hideUserBadge() {
-        setStoredUser('');
-        currentAuthor = '';
-        authorInput.value = '';
+        setStoredToken(''); setStoredUser('');
+        currentAuthor = ''; authorInput.value = getAnonymousGuestName();
+        authorInput.readOnly = true;
         userBadge.style.display = 'none';
+        if (regUsername) regUsername.style.display = 'inline';
+        if (regPassword) regPassword.style.display = 'inline';
+        if (btnLogin) btnLogin.style.display = 'inline';
+        if (btnRegister) btnRegister.style.display = 'inline';
+        var cb = document.getElementById('contactsBox'); if (cb) cb.style.display = 'none';
         registerMsg.textContent = '';
       }
-      if (getStoredUser()) showUserBadge(getStoredUser());
+      if (getStoredUser() && getStoredToken()) showUserBadge(getStoredUser()); else { authorInput.value = getAnonymousGuestName(); authorInput.readOnly = true; }
 
       var THEME_KEY = 'appTheme';
       var themeToggle = document.getElementById('themeToggle');
@@ -340,29 +460,70 @@
       if (typeof localStorage !== 'undefined' && localStorage.getItem(THEME_KEY) !== 'night') setDayMode(true);
       themeToggle.addEventListener('click', function() { setDayMode(!isDayMode()); });
 
-      btnRegister.addEventListener('click', function() {
+      function doAuth(isLogin) {
         var name = (regUsername.value || '').trim();
+        var pass = (regPassword && regPassword.value) ? regPassword.value : '';
         registerMsg.textContent = '';
         registerMsg.className = 'register-msg';
-        if (!name || name.length < 2) { registerMsg.textContent = 'Username must be at least 2 characters'; registerMsg.className = 'register-msg err'; return; }
-        btnRegister.disabled = true;
-        fetch(origin + '/api/chat/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: name })
-        }).then(function(r) {
-          if (r.ok) return r.json();
-          return r.json().then(function(err) { throw new Error(err.message || 'Registration failed'); });
-        }).then(function(data) {
-          setStoredUser(data.username);
-          showUserBadge(data.username);
-          regUsername.value = '';
-        }).catch(function(e) {
-          registerMsg.textContent = e.message || 'Registration failed';
-          registerMsg.className = 'register-msg err';
-        }).finally(function() { btnRegister.disabled = false; });
-      });
-      btnLogout.addEventListener('click', hideUserBadge);
+        if (!name || name.length < 2) { registerMsg.textContent = 'Username at least 2 characters'; registerMsg.className = 'register-msg err'; return; }
+        if (isLogin) {
+          if (!pass) { registerMsg.textContent = 'Enter password'; registerMsg.className = 'register-msg err'; return; }
+          btnLogin.disabled = true;
+          fetch(origin + '/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }, body: JSON.stringify({ username: name, password: pass }) })
+            .then(function(r) { if (r.ok) return r.json(); return r.json().then(function(e) { throw new Error(e.message || 'Login failed'); }); })
+            .then(function(data) { showUserBadge(data.user.username, data.access_token); regUsername.value = ''; if (regPassword) regPassword.value = ''; })
+            .catch(function(e) { registerMsg.textContent = e.message || 'Login failed'; registerMsg.className = 'register-msg err'; })
+            .finally(function() { btnLogin.disabled = false; });
+        } else {
+          if (!pass || pass.length < 6) { registerMsg.textContent = 'Password at least 6 characters'; registerMsg.className = 'register-msg err'; return; }
+          btnRegister.disabled = true;
+          fetch(origin + '/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: name, password: pass }) })
+            .then(function(r) { if (r.ok) return r.json(); return r.json().then(function(e) { throw new Error(e.message || 'Register failed'); }); })
+            .then(function(data) { showUserBadge(data.user.username, data.access_token); regUsername.value = ''; if (regPassword) regPassword.value = ''; })
+            .catch(function(e) { registerMsg.textContent = e.message || 'Register failed'; registerMsg.className = 'register-msg err'; })
+            .finally(function() { btnRegister.disabled = false; });
+        }
+      }
+      if (btnLogin) btnLogin.addEventListener('click', function() { doAuth(true); });
+      btnRegister.addEventListener('click', function() { doAuth(false); });
+      btnLogout.addEventListener('click', function() { hideUserBadge(); if (typeof socket !== 'undefined' && socket.connected) socket.disconnect(); socket = io(origin, getSocketOpts()); });
+      var addFriendUsername = document.getElementById('addFriendUsername');
+      var btnAddFriend = document.getElementById('btnAddFriend');
+      if (btnAddFriend && addFriendUsername) {
+        btnAddFriend.addEventListener('click', function() {
+          var un = (addFriendUsername.value || '').trim();
+          if (!un) return;
+          btnAddFriend.disabled = true;
+          fetch(origin + '/api/chat/friends', { method: 'POST', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }, body: JSON.stringify({ username: un }) })
+            .then(function(r) { if (r.ok) { addFriendUsername.value = ''; loadFriends(); return; } return r.json().then(function(e) { throw new Error(e.message || 'Failed'); }); })
+            .catch(function(e) { alert(e.message || 'Add friend failed'); })
+            .finally(function() { btnAddFriend.disabled = false; });
+        });
+      }
+      function loadFriends() {
+        var list = document.getElementById('friendsList'); if (!list) return;
+        fetch(origin + '/api/chat/friends', { headers: getAuthHeaders() }).then(function(r) { if (!r.ok) return []; return r.json(); }).then(function(arr) {
+          list.innerHTML = '';
+          (arr || []).forEach(function(f) {
+            var li = document.createElement('li');
+            li.innerHTML = '<span>' + escapeHtml(f.username) + '</span><button type="button" class="btn chat-with-btn" data-friend-id="' + escapeHtml(f.id) + '">Chat</button>';
+            li.querySelector('button').addEventListener('click', function() { openConversation(f.id); });
+            list.appendChild(li);
+          });
+        }).catch(function() { list.innerHTML = '<li>Failed to load</li>'; });
+      }
+      function openConversation(friendId) {
+        fetch(origin + '/api/chat/conversation/' + encodeURIComponent(friendId), { headers: getAuthHeaders() })
+          .then(function(r) { if (!r.ok) throw new Error('Failed'); return r.json(); })
+          .then(function(room) {
+            currentRoomId = room.id;
+            var opt = roomSelect.querySelector('option[value="' + room.id + '"]');
+            if (!opt) { opt = document.createElement('option'); opt.value = room.id; opt.textContent = room.name || 'Chat'; roomSelect.appendChild(opt); }
+            roomSelect.value = room.id;
+            loadHistory(currentRoomId);
+            if (typeof socket !== 'undefined' && socket.connected) socket.emit('chat:join', { roomId: currentRoomId });
+          }).catch(function() { alert('Could not open conversation'); });
+      }
 
       function getAuthor() {
         return (authorInput.value || '').trim() || 'Anonymous';
@@ -394,8 +555,9 @@
         if (msg.attachmentPath) {
           var url = attachmentUrl(msg.attachmentPath);
           var name = escapeHtml(msg.attachmentName || 'file');
-          var isPdf = msg.attachmentMime === 'application/pdf';
-          if (isImageMime(msg.attachmentMime)) {
+          var mime = msg.attachmentMime || '';
+          var isPdf = mime === 'application/pdf';
+          if (isImageMime(mime)) {
             contentHtml += '<div class="attachment"><a href="' + escapeHtml(url) + '" target="_blank" rel="noopener"><img src="' + escapeHtml(url) + '" alt="' + name + '" class="chat-img" /></a></div>';
           } else if (isPdf) {
             contentHtml += '<div class="attachment"><a href="' + escapeHtml(url) + '" target="_blank" rel="noopener">📄 ' + name + '</a></div>';
@@ -421,7 +583,7 @@
             if (!confirm('Delete this message and attachment?')) return;
             fetch(origin + '/api/chat/messages/' + encodeURIComponent(msg.id), {
               method: 'DELETE',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
               body: JSON.stringify({ author: getAuthor() })
             }).then(function(r) {
               if (r.ok) { removeMessageById(msg.id); return; }
@@ -452,31 +614,61 @@
       var btnAddRoom = document.getElementById('btnAddRoom');
       var currentRoomId = '';
 
-      function loadRooms() {
-        fetch(origin + '/api/chat/rooms')
-          .then(function(r) { return r.json(); })
+      function loadRooms(selectRoomId) {
+        if (!roomSelect) return Promise.resolve();
+        var url = getStoredToken() ? origin + '/api/chat/rooms/mine' : origin + '/api/chat/rooms';
+        var headers = {};
+        try { headers = getAuthHeaders(); } catch (e) { headers = {}; }
+        return fetch(url, { headers: headers })
+          .then(function(r) {
+            return r.json().catch(function() { return null; }).then(function(body) {
+              if (!r.ok) {
+                var errMsg = (body && body.message) ? body.message : ('Could not load rooms (' + r.status + ')');
+                if (r.status === 500 && (!body || !body.message)) errMsg = 'Internal server error';
+                throw new Error(errMsg);
+              }
+              return Array.isArray(body) ? body : (body ? [] : []);
+            });
+          })
           .then(function(rooms) {
+            if (!roomSelect) return;
+            var retryBtn = document.getElementById('btnRetryRooms'); if (retryBtn) retryBtn.style.display = 'none';
             roomSelect.innerHTML = '';
-            (rooms || []).forEach(function(r) {
+            var list = Array.isArray(rooms) ? rooms : [];
+            list.forEach(function(r) {
               var opt = document.createElement('option');
-              opt.value = r.id;
-              opt.textContent = r.name;
+              opt.value = r.id || '';
+              opt.textContent = (r && (r.name || r.id)) ? (r.name || r.id) : '';
               roomSelect.appendChild(opt);
             });
-            if (roomSelect.options.length) {
+            if (selectRoomId && roomSelect.querySelector('option[value="' + selectRoomId + '"]')) {
+              roomSelect.value = selectRoomId;
+              currentRoomId = selectRoomId;
+            } else if (roomSelect.options.length) {
               currentRoomId = roomSelect.value;
+            }
+            if (currentRoomId) {
               loadHistory(currentRoomId);
-              if (socket.connected) socket.emit('chat:join', { roomId: currentRoomId });
+              if (typeof socket !== 'undefined' && socket.connected) socket.emit('chat:join', { roomId: currentRoomId });
             }
           })
-          .catch(function() { roomSelect.innerHTML = '<option value="">Failed to load rooms</option>'; });
+          .catch(function(e) {
+            var msg = (e && e.message) ? String(e.message) : 'Failed to load rooms';
+            if (roomSelect) {
+              roomSelect.innerHTML = '<option value="">' + (typeof escapeHtml === 'function' ? escapeHtml(msg) : msg.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')) + '</option>';
+              roomSelect.title = msg;
+            }
+            var retryBtn = document.getElementById('btnRetryRooms'); if (retryBtn) retryBtn.style.display = 'inline-block';
+          });
       }
+      var btnRetryRooms = document.getElementById('btnRetryRooms');
+      if (btnRetryRooms) btnRetryRooms.addEventListener('click', function() { btnRetryRooms.style.display = 'none'; loadRooms(); });
 
       function loadHistory(roomId) {
         currentAuthor = getAuthor();
         var url = origin + '/api/chat/messages?limit=100';
         if (roomId) url += '&roomId=' + encodeURIComponent(roomId);
-        fetch(url)
+        fetch(url, { headers: getAuthHeaders() })
           .then(function(r) { return r.json(); })
           .then(function(arr) {
             chatList.innerHTML = '';
@@ -485,18 +677,38 @@
           .catch(function() { chatList.innerHTML = '<div class="chat-row"><div class="chat-item callee">Failed to load history.</div></div>'; });
       }
 
-      loadRooms();
-
-      var socket = io(origin, { path: '/socket.io/', transports: ['websocket', 'polling'] });
+      function getSocketOpts() {
+        var token = getStoredToken();
+        var opts = { path: '/socket.io/', transports: ['websocket', 'polling'] };
+        if (token) opts.auth = { token: token };
+        return opts;
+      }
+      var socket = io(origin, getSocketOpts());
       socket.on('connect', function() {
         statusEl.textContent = 'Connected';
         statusEl.className = 'status connected';
         if (currentRoomId) socket.emit('chat:join', { roomId: currentRoomId });
       });
       socket.on('disconnect', function() { statusEl.textContent = 'Disconnected'; statusEl.className = 'status disconnected'; });
-      socket.on('chat:message', appendMessage);
+      socket.on('chat:message', function(msg) { appendMessage(msg); if (currentRoomId && typeof socket !== 'undefined') socket.emit('chat:read', { roomId: currentRoomId, messageId: msg.id }); });
       socket.on('chat:messageDeleted', function(p) { if (p && p.id) removeMessageById(p.id); });
-
+      var typingTimeout = null;
+      var typingIndicatorEl = document.getElementById('typingIndicator');
+      socket.on('chat:typing', function(p) {
+        if (!p || p.roomId !== currentRoomId) return;
+        if (typingIndicatorEl) { typingIndicatorEl.textContent = p.isTyping ? (p.author || 'Someone') + ' is typing...' : ''; typingIndicatorEl.style.display = p.isTyping ? 'block' : 'none'; }
+      });
+      function emitTyping(isTyping) {
+        if (typeof socket === 'undefined' || !socket.connected) return;
+        socket.emit('chat:typing', { roomId: currentRoomId || null, isTyping: isTyping });
+      }
+      if (contentInput) {
+        contentInput.addEventListener('input', function() {
+          clearTimeout(typingTimeout);
+          emitTyping(true);
+          typingTimeout = setTimeout(function() { emitTyping(false); }, 1500);
+        });
+      }
       if (roomSelect) {
         roomSelect.addEventListener('change', function() {
           currentRoomId = roomSelect.value || '';
@@ -504,6 +716,7 @@
           socket.emit('chat:join', { roomId: currentRoomId || null });
         });
       }
+      loadRooms();
       if (btnAddRoom && newRoomName) {
         btnAddRoom.addEventListener('click', function() {
           var name = (newRoomName.value || '').trim();
@@ -511,18 +724,16 @@
           btnAddRoom.disabled = true;
           fetch(origin + '/api/chat/rooms', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({ name: name })
           }).then(function(r) {
             if (r.ok) return r.json();
-            return r.json().then(function(err) { throw new Error(err.message || err.error || 'Failed'); });
+            return r.json().then(function(err) { throw new Error(err.message || err.error || 'Failed'); }).catch(function() { throw new Error('Room name may already exist or server error'); });
           }).then(function(room) {
             newRoomName.value = '';
-            loadRooms();
-            roomSelect.value = room.id;
-            currentRoomId = room.id;
-            loadHistory(currentRoomId);
-            socket.emit('chat:join', { roomId: currentRoomId });
+            return loadRooms(room.id);
+          }).then(function() {
+            if (currentRoomId && socket.connected) socket.emit('chat:join', { roomId: currentRoomId });
           }).catch(function(e) {
             alert(e.message || 'Could not add room');
           }).finally(function() { btnAddRoom.disabled = false; });
@@ -562,7 +773,7 @@
           fd.append('author', currentAuthor);
           fd.append('content', content);
           if (currentRoomId) fd.append('roomId', currentRoomId);
-          fetch(origin + '/api/chat/upload', { method: 'POST', body: fd })
+          fetch(origin + '/api/chat/upload', { method: 'POST', headers: getAuthHeaders(), body: fd })
             .then(function(r) { return r.json(); })
             .then(function(data) {
               if (data.error) return;

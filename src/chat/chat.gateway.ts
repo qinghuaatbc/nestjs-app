@@ -1,26 +1,60 @@
 import {
   ConnectedSocket,
   MessageBody,
+  OnGatewayConnection,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
+import { JwtService } from '@nestjs/jwt';
 import { Server } from 'socket.io';
+import { AuthService } from '../auth/auth.service';
+import { JwtPayload } from '../auth/jwt.strategy';
+import { ChatUser } from './chat.entity';
 import { ChatService } from './chat.service';
 
 const ROOM_PREFIX = 'room:';
 
+export type SocketWithUser = {
+  join: (r: string) => void;
+  leave: (r: string) => void;
+  rooms: Set<string>;
+  data: { user?: ChatUser | null };
+  to: (room: string) => { emit: (ev: string, payload: unknown) => void };
+};
+
 @WebSocketGateway({ cors: { origin: '*' } })
-export class ChatGateway {
+export class ChatGateway implements OnGatewayConnection {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private readonly authService: AuthService,
+    private readonly jwtService: JwtService,
+  ) {}
+
+  async handleConnection(client: SocketWithUser & { handshake: { auth?: { token?: string }; query?: { token?: string } } }) {
+    const token =
+      (client.handshake?.auth as { token?: string } | undefined)?.token ??
+      (typeof client.handshake?.query?.token === 'string' ? client.handshake.query.token : undefined);
+    if (!token) {
+      client.data.user = null;
+      return;
+    }
+    try {
+      const payload = this.jwtService.verify<JwtPayload>(token);
+      const user = await this.authService.findById(payload.sub);
+      client.data.user = user ?? null;
+    } catch {
+      client.data.user = null;
+    }
+  }
 
   @SubscribeMessage('chat:join')
   handleJoin(
     @MessageBody() payload: { roomId?: string | null },
-    @ConnectedSocket() client: { join: (room: string) => void; leave: (room: string) => void; rooms: Set<string> },
+    @ConnectedSocket() client: SocketWithUser,
   ) {
     const roomId = payload?.roomId != null && payload.roomId !== '' ? String(payload.roomId) : null;
     const roomName = roomId ? ROOM_PREFIX + roomId : ROOM_PREFIX + 'default';
@@ -39,11 +73,13 @@ export class ChatGateway {
       roomId?: string | null;
       userId?: string | null;
     },
+    @ConnectedSocket() client: SocketWithUser,
   ) {
-    const author = (payload?.author && String(payload.author).trim()) || 'Anonymous';
+    const user = client.data?.user ?? null;
+    const author = (user?.username ?? (payload?.author && String(payload.author).trim())) || 'Anonymous';
     const content = payload?.content != null ? String(payload.content).trim() : '';
     const roomId = payload?.roomId != null && payload.roomId !== '' ? String(payload.roomId) : null;
-    const userId = payload?.userId != null && payload.userId !== '' ? String(payload.userId) : null;
+    const userId = user?.id ?? (payload?.userId != null && payload.userId !== '' ? String(payload.userId) : null);
     if (!content) return;
     const msg = await this.chatService.create(author, content, undefined, roomId, userId);
     this.emitMessage(msg, roomId);
@@ -79,5 +115,40 @@ export class ChatGateway {
   emitMessageDeleted(messageId: string, roomId?: string | null) {
     const roomName = roomId ? ROOM_PREFIX + roomId : ROOM_PREFIX + 'default';
     this.server.to(roomName).emit('chat:messageDeleted', { id: messageId });
+  }
+
+  @SubscribeMessage('chat:typing')
+  handleTyping(
+    @MessageBody() payload: { roomId?: string | null; isTyping?: boolean },
+    @ConnectedSocket() client: SocketWithUser,
+  ) {
+    const roomId = payload?.roomId != null && payload.roomId !== '' ? String(payload.roomId) : null;
+    const roomName = roomId ? ROOM_PREFIX + roomId : ROOM_PREFIX + 'default';
+    const user = client.data?.user;
+    const author = user?.username ?? 'Anonymous';
+    const userId = user?.id ?? null;
+    client.to(roomName).emit('chat:typing', {
+      roomId,
+      author,
+      userId,
+      isTyping: payload?.isTyping !== false,
+    });
+  }
+
+  @SubscribeMessage('chat:read')
+  handleRead(
+    @MessageBody() payload: { roomId?: string | null; messageId?: string },
+    @ConnectedSocket() client: SocketWithUser,
+  ) {
+    const roomId = payload?.roomId != null && payload.roomId !== '' ? String(payload.roomId) : null;
+    const roomName = roomId ? ROOM_PREFIX + roomId : ROOM_PREFIX + 'default';
+    const user = client.data?.user;
+    const userId = user?.id ?? null;
+    if (!userId) return;
+    client.to(roomName).emit('chat:read', {
+      roomId,
+      userId,
+      messageId: payload?.messageId ?? null,
+    });
   }
 }

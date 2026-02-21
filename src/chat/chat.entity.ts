@@ -45,6 +45,13 @@ export class ChatUser {
   @Column({ type: 'varchar', length: 64 })
   username: string;
 
+  /** bcrypt hash; empty = no password (legacy/guest) */
+  @Column({ type: 'varchar', length: 255, default: '' })
+  passwordHash: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  email: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 }

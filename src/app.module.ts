@@ -5,6 +5,7 @@ import { join } from 'path';
 import { ApiController } from './api.controller';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AuthModule } from './auth/auth.module';
 import { ChatModule } from './chat/chat.module';
 import { CustomerModule } from './customer/customer.module';
 import { DeviceModule } from './device/device.module';
@@ -12,6 +13,7 @@ import { EventsModule } from './events/events.module';
 import { FilesModule } from './files/files.module';
 @Module({
   imports: [
+    AuthModule,
     EventsModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
